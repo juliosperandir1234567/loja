@@ -61,32 +61,42 @@ export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) =
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {produtosFiltrados.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => onSelect(p)}
-            className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center ring-1 ring-neutral-200 active:bg-neutral-50"
-          >
-            {p.foto_url ? (
-              <img
-                src={p.foto_url}
-                alt={p.nome}
-                className="h-16 w-16 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 text-2xl">
-                🧴
-              </div>
-            )}
-            <p className="line-clamp-2 text-sm font-semibold text-neutral-900">{p.nome}</p>
-            <p className="text-base font-bold text-[var(--cor-primaria)]">
-              R$ {precoEfetivo(p).toFixed(2)}
-            </p>
-            {p.estoque_atual <= p.estoque_minimo && (
-              <p className="text-xs font-medium text-red-600">Últimas unidades</p>
-            )}
-          </button>
-        ))}
+        {produtosFiltrados.map((p) => {
+          const semEstoque = p.estoque_atual <= 0
+          return (
+            <button
+              key={p.id}
+              onClick={() => onSelect(p)}
+              disabled={semEstoque}
+              className={`flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center ring-1 ring-neutral-200 active:bg-neutral-50 ${
+                semEstoque ? 'opacity-50' : ''
+              }`}
+            >
+              {p.foto_url ? (
+                <img
+                  src={p.foto_url}
+                  alt={p.nome}
+                  className="h-16 w-16 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 text-2xl">
+                  🧴
+                </div>
+              )}
+              <p className="line-clamp-2 text-sm font-semibold text-neutral-900">{p.nome}</p>
+              <p className="text-base font-bold text-[var(--cor-primaria)]">
+                R$ {precoEfetivo(p).toFixed(2)}
+              </p>
+              {semEstoque ? (
+                <p className="text-xs font-medium text-red-600">Sem estoque</p>
+              ) : (
+                p.estoque_atual <= p.estoque_minimo && (
+                  <p className="text-xs font-medium text-amber-600">Últimas unidades</p>
+                )
+              )}
+            </button>
+          )
+        })}
         {produtosFiltrados.length === 0 && (
           <p className="col-span-2 py-6 text-center text-sm text-neutral-400">
             Nenhum produto encontrado.

@@ -38,8 +38,17 @@ export function PdvPage() {
   const total = carrinho.reduce((acc, i) => acc + i.quantidade * precoEfetivo(i.produto), 0)
 
   function adicionarProduto(produto: Produto) {
+    if (produto.estoque_atual <= 0) {
+      toast.error(`"${produto.nome}" está sem estoque`)
+      return
+    }
     setCarrinho((atual) => {
       const existente = atual.find((i) => i.produto.id === produto.id)
+      const quantidadeAtual = existente?.quantidade ?? 0
+      if (quantidadeAtual + 1 > produto.estoque_atual) {
+        toast.error(`Só tem ${produto.estoque_atual} un. de "${produto.nome}" em estoque`)
+        return atual
+      }
       if (existente) {
         return atual.map((i) =>
           i.produto.id === produto.id ? { ...i, quantidade: i.quantidade + 1 } : i,
@@ -55,7 +64,14 @@ export function PdvPage() {
       return
     }
     setCarrinho((atual) =>
-      atual.map((i) => (i.produto.id === produtoId ? { ...i, quantidade } : i)),
+      atual.map((i) => {
+        if (i.produto.id !== produtoId) return i
+        if (quantidade > i.produto.estoque_atual) {
+          toast.error(`Só tem ${i.produto.estoque_atual} un. de "${i.produto.nome}" em estoque`)
+          return i
+        }
+        return { ...i, quantidade }
+      }),
     )
   }
 
