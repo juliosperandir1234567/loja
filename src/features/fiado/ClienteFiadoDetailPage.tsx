@@ -255,7 +255,7 @@ export function ClienteFiadoDetailPage() {
       </div>
 
       {selecionados.size > 0 && (
-        <div className="fixed inset-x-0 bottom-16 border-t border-neutral-200 bg-white p-4">
+        <div className="fixed inset-x-0 bottom-[4.75rem] border-t border-neutral-200 bg-white p-4">
           <div className="mb-2 flex justify-between font-semibold">
             <span>Total a receber</span>
             <span>R$ {totalSelecionado.toFixed(2)}</span>

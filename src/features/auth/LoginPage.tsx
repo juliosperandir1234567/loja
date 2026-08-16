@@ -37,10 +37,10 @@ export function LoginPage() {
             className="mx-auto mb-4 h-16 object-contain"
           />
         )}
-        <h1 className="mb-1 text-xl font-semibold text-neutral-900">
+        <h1 className="mb-1 text-2xl font-bold text-neutral-900">
           {config?.nome_loja ?? 'Espaço Sperandir'}
         </h1>
-        <p className="mb-6 text-sm text-neutral-500">Entre com seu e-mail e senha</p>
+        <p className="mb-6 text-base text-neutral-500">Entre com seu e-mail e senha</p>
 
         <label className="mb-3 block">
           <span className="mb-1 block text-sm font-medium text-neutral-700">E-mail</span>
@@ -71,7 +71,7 @@ export function LoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-lg bg-[var(--cor-primaria)] px-4 py-3 text-base font-medium text-white disabled:opacity-50"
+          className="w-full rounded-xl bg-[var(--cor-primaria)] px-4 py-3 text-lg font-bold text-white disabled:opacity-50"
         >
           {submitting ? 'Entrando...' : 'Entrar'}
         </button>

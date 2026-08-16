@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { AppShell } from '../../components/layout/AppShell'
-import { ProdutoPicker } from '../../components/ProdutoPicker'
+import { ProdutoGridPicker } from '../../components/ProdutoGridPicker'
 import type { Produto } from '../produtos/api'
 import { precoEfetivo } from '../produtos/api'
 import type { Cliente } from '../clientes/api'
@@ -131,60 +131,65 @@ export function PdvPage() {
   return (
     <AppShell title="Vender">
       <div className="flex flex-col gap-4 p-4">
-        <ProdutoPicker onSelect={adicionarProduto} />
+        <ProdutoGridPicker onSelect={adicionarProduto} />
 
-        <div>
-          <h2 className="mb-2 text-sm font-medium text-neutral-700">Carrinho</h2>
-          {carrinho.length === 0 && <p className="text-sm text-neutral-400">Nenhum item ainda.</p>}
-          <ul className="flex flex-col gap-2">
-            {carrinho.map((item) => (
-              <li
-                key={item.produto.id}
-                className="flex items-center justify-between rounded-xl bg-white p-3 ring-1 ring-neutral-200"
-              >
-                <div>
-                  <p className="font-medium">{item.produto.nome}</p>
-                  <p className="text-sm text-neutral-500">
-                    R$ {precoEfetivo(item.produto).toFixed(2)} un.
-                    {item.produto.preco_promocional && (
-                      <span className="ml-1 text-neutral-400 line-through">
-                        R$ {item.produto.preco_venda.toFixed(2)}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => ajustarQuantidade(item.produto.id, item.quantidade - 1)}
-                    className="h-8 w-8 rounded-full border border-neutral-300 text-lg"
-                  >
-                    −
-                  </button>
-                  <span className="w-6 text-center">{item.quantidade}</span>
-                  <button
-                    onClick={() => ajustarQuantidade(item.produto.id, item.quantidade + 1)}
-                    className="h-8 w-8 rounded-full border border-neutral-300 text-lg"
-                  >
-                    +
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {carrinho.length > 0 && (
+          <div>
+            <h2 className="mb-2 text-base font-bold text-neutral-700">
+              Carrinho ({carrinho.reduce((acc, i) => acc + i.quantidade, 0)} itens)
+            </h2>
+            <ul className="flex flex-col gap-2">
+              {carrinho.map((item) => (
+                <li
+                  key={item.produto.id}
+                  className="flex items-center justify-between rounded-2xl bg-white p-3 ring-1 ring-neutral-200"
+                >
+                  <div className="min-w-0 pr-2">
+                    <p className="truncate font-semibold text-neutral-900">{item.produto.nome}</p>
+                    <p className="text-sm text-neutral-500">
+                      R$ {precoEfetivo(item.produto).toFixed(2)} un.
+                      {item.produto.preco_promocional && (
+                        <span className="ml-1 text-neutral-400 line-through">
+                          R$ {item.produto.preco_venda.toFixed(2)}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      onClick={() => ajustarQuantidade(item.produto.id, item.quantidade - 1)}
+                      className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-neutral-300 text-2xl font-bold text-neutral-700"
+                      aria-label="Diminuir quantidade"
+                    >
+                      −
+                    </button>
+                    <span className="w-8 text-center text-lg font-bold">{item.quantidade}</span>
+                    <button
+                      onClick={() => ajustarQuantidade(item.produto.id, item.quantidade + 1)}
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--cor-primaria)] text-2xl font-bold text-white"
+                      aria-label="Aumentar quantidade"
+                    >
+                      +
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {carrinho.length > 0 && (
-        <div className="fixed inset-x-0 bottom-16 border-t border-neutral-200 bg-white p-4">
-          <div className="mb-2 flex justify-between font-semibold">
-            <span>Total</span>
-            <span>R$ {total.toFixed(2)}</span>
+        <div className="fixed inset-x-0 bottom-[4.75rem] border-t border-neutral-200 bg-white p-4 shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="text-base font-semibold text-neutral-600">Total</span>
+            <span className="text-2xl font-bold text-neutral-900">R$ {total.toFixed(2)}</span>
           </div>
           <button
             onClick={() => setEtapa('pagamento')}
-            className="w-full rounded-lg bg-[var(--cor-primaria)] py-3 text-base font-medium text-white"
+            className="w-full rounded-xl bg-[var(--cor-primaria)] py-4 text-lg font-bold text-white"
           >
-            Ir para pagamento
+            Ir para pagamento →
           </button>
         </div>
       )}
