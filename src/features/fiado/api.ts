@@ -30,6 +30,16 @@ export async function listarItensFiadoPendenteCliente(clienteId: string) {
   return data
 }
 
+export async function listarHistoricoVendasCliente(clienteId: string) {
+  const { data, error } = await supabase
+    .from('vw_historico_vendas_cliente')
+    .select('*')
+    .eq('cliente_id', clienteId)
+    .order('criado_em', { ascending: false })
+  if (error) throw error
+  return data
+}
+
 export async function registrarPagamentoItens(pagamentos: { itemId: string; valor: number }[]) {
   const { data, error } = await supabase.rpc('registrar_pagamento_fiado_itens', {
     p_pagamentos: pagamentos.map((p) => ({ item_id: p.itemId, valor: p.valor })),

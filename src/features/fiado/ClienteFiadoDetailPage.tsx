@@ -4,7 +4,11 @@ import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { AppShell } from '../../components/layout/AppShell'
 import { useCliente } from '../clientes/hooks'
-import { useItensFiadoPendenteCliente, useRegistrarPagamentoItens } from './hooks'
+import {
+  useItensFiadoPendenteCliente,
+  useRegistrarPagamentoItens,
+  useHistoricoVendasCliente,
+} from './hooks'
 import { buscarSaldoCliente } from './api'
 import { buscarConfiguracoes } from '../configuracoes/api'
 import { gerarPdfPagamento } from './pdfPagamento'
@@ -17,17 +21,26 @@ interface Recibo {
   itens: string[]
 }
 
+const FORMA_LABEL: Record<string, string> = {
+  a_vista: 'À vista',
+  cartao: 'Cartão',
+  fiado: 'A prazo',
+}
+
 export function ClienteFiadoDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { data: cliente } = useCliente(id)
   const { data: itens, isLoading } = useItensFiadoPendenteCliente(id)
+  const { data: historico, isLoading: carregandoHistorico } = useHistoricoVendasCliente(id)
   const registrarItens = useRegistrarPagamentoItens()
 
   const [valores, setValores] = useState<Record<string, string>>({})
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
   const [recibo, setRecibo] = useState<Recibo | null>(null)
   const [gerandoPdf, setGerandoPdf] = useState(false)
+  const [pagandoTudo, setPagandoTudo] = useState(false)
+  const [mostrarHistorico, setMostrarHistorico] = useState(false)
 
   const porVenda = useMemo(() => {
     const mapa = new Map<string, typeof itens>()
@@ -38,6 +51,16 @@ export function ClienteFiadoDetailPage() {
     }
     return Array.from(mapa.entries())
   }, [itens])
+
+  const historicoPorVenda = useMemo(() => {
+    const mapa = new Map<string, typeof historico>()
+    for (const i of historico ?? []) {
+      const lista = mapa.get(i.venda_id) ?? []
+      lista.push(i)
+      mapa.set(i.venda_id, lista)
+    }
+    return Array.from(mapa.entries())
+  }, [historico])
 
   const totalEmAberto = (itens ?? []).reduce((acc, i) => acc + Number(i.restante), 0)
 
@@ -72,20 +95,14 @@ export function ClienteFiadoDetailPage() {
     0,
   )
 
-  async function handleConfirmar() {
-    const pagamentos = Array.from(selecionados)
-      .map((itemId) => ({ itemId, valor: Number(valores[itemId]) || 0 }))
-      .filter((p) => p.valor > 0)
-
+  async function processarPagamento(
+    pagamentos: { itemId: string; valor: number }[],
+    nomesItens: string[],
+  ) {
     if (pagamentos.length === 0) {
       toast.error('Selecione ao menos um item e informe o valor')
       return
     }
-
-    const nomesItens = (itens ?? [])
-      .filter((i) => selecionados.has(i.item_id))
-      .map((i) => `${i.produto_nome} (R$ ${(Number(valores[i.item_id]) || 0).toFixed(2)})`)
-
     try {
       await registrarItens.mutateAsync(pagamentos)
       const saldoRestante = await buscarSaldoCliente(id!)
@@ -99,6 +116,29 @@ export function ClienteFiadoDetailPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao registrar pagamento')
     }
+  }
+
+  async function handleConfirmar() {
+    const pagamentos = Array.from(selecionados)
+      .map((itemId) => ({ itemId, valor: Number(valores[itemId]) || 0 }))
+      .filter((p) => p.valor > 0)
+    const nomesItens = (itens ?? [])
+      .filter((i) => selecionados.has(i.item_id))
+      .map((i) => `${i.produto_nome} (R$ ${(Number(valores[i.item_id]) || 0).toFixed(2)})`)
+    await processarPagamento(pagamentos, nomesItens)
+  }
+
+  async function handlePagamentoTotal() {
+    if (!itens || itens.length === 0) return
+    setPagandoTudo(true)
+    const pagamentos = itens
+      .map((i) => ({ itemId: i.item_id, valor: Number(i.restante) }))
+      .filter((p) => p.valor > 0)
+    const nomesItens = itens.map(
+      (i) => `${i.produto_nome} (R$ ${Number(i.restante).toFixed(2)})`,
+    )
+    await processarPagamento(pagamentos, nomesItens)
+    setPagandoTudo(false)
   }
 
   async function handleGerarPdf() {
@@ -200,16 +240,28 @@ export function ClienteFiadoDetailPage() {
           <p className="text-sm text-neutral-400">Nenhuma compra em aberto.</p>
         )}
 
-        <div className="flex gap-2">
-          <button onClick={marcarTodos} className="text-sm text-neutral-600 underline">
-            Selecionar tudo (pagar tudo)
+        {totalEmAberto > 0 && (
+          <button
+            onClick={handlePagamentoTotal}
+            disabled={pagandoTudo || registrarItens.isPending}
+            className="rounded-xl bg-green-600 py-4 text-lg font-bold text-white disabled:opacity-50"
+          >
+            {pagandoTudo ? 'Registrando...' : `Pagamento total — R$ ${totalEmAberto.toFixed(2)}`}
           </button>
-          {selecionados.size > 0 && (
-            <button onClick={limparSelecao} className="text-sm text-neutral-400 underline">
-              Limpar seleção
+        )}
+
+        {porVenda.length > 0 && (
+          <div className="flex gap-2">
+            <button onClick={marcarTodos} className="text-sm text-neutral-600 underline">
+              Ou selecione item por item
             </button>
-          )}
-        </div>
+            {selecionados.size > 0 && (
+              <button onClick={limparSelecao} className="text-sm text-neutral-400 underline">
+                Limpar seleção
+              </button>
+            )}
+          </div>
+        )}
 
         {porVenda.map(([vendaId, itensDaVenda]) => (
           <div key={vendaId} className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
@@ -252,6 +304,54 @@ export function ClienteFiadoDetailPage() {
             </ul>
           </div>
         ))}
+
+        <div className="mt-2 border-t border-neutral-200 pt-3">
+          <button
+            onClick={() => setMostrarHistorico((v) => !v)}
+            className="text-sm font-medium text-neutral-600 underline"
+          >
+            {mostrarHistorico ? 'Ocultar' : 'Ver'} histórico de compras
+          </button>
+
+          {mostrarHistorico && (
+            <div className="mt-3 flex flex-col gap-2">
+              {carregandoHistorico && <p className="text-sm text-neutral-400">Carregando...</p>}
+              {!carregandoHistorico && historicoPorVenda.length === 0 && (
+                <p className="text-sm text-neutral-400">Nenhuma compra encontrada.</p>
+              )}
+              {historicoPorVenda.map(([vendaId, itensDaVenda]) => {
+                const primeiro = itensDaVenda![0]
+                const valorTotal = Number(primeiro.valor_total)
+                return (
+                  <div
+                    key={vendaId}
+                    className="rounded-xl bg-white p-3 text-sm ring-1 ring-neutral-200"
+                  >
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-neutral-500">
+                        {format(new Date(primeiro.criado_em), 'dd/MM/yyyy')} ·{' '}
+                        {FORMA_LABEL[primeiro.forma_pagamento]} · {primeiro.vendedor_nome}
+                      </span>
+                      <span
+                        className={`text-xs font-medium ${
+                          primeiro.status === 'pago' ? 'text-green-600' : 'text-amber-600'
+                        }`}
+                      >
+                        {primeiro.status === 'pago' ? 'Pago' : 'Pendente'}
+                      </span>
+                    </div>
+                    <p className="text-neutral-700">
+                      {itensDaVenda!.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ')}
+                    </p>
+                    <p className="mt-1 font-semibold text-neutral-900">
+                      R$ {valorTotal.toFixed(2)}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {selecionados.size > 0 && (

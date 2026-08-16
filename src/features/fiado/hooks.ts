@@ -23,6 +23,14 @@ export function useItensFiadoPendenteCliente(clienteId: string | undefined) {
   })
 }
 
+export function useHistoricoVendasCliente(clienteId: string | undefined) {
+  return useQuery({
+    queryKey: ['historico-vendas-cliente', clienteId],
+    queryFn: () => api.listarHistoricoVendasCliente(clienteId!),
+    enabled: !!clienteId,
+  })
+}
+
 export function useRegistrarPagamentoItens() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -30,6 +38,7 @@ export function useRegistrarPagamentoItens() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiados-abertos'] })
       queryClient.invalidateQueries({ queryKey: ['fiado-itens-pendentes'] })
+      queryClient.invalidateQueries({ queryKey: ['historico-vendas-cliente'] })
     },
   })
 }

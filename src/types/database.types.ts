@@ -312,6 +312,27 @@ export interface Database {
         }
         Relationships: []
       }
+      vw_historico_vendas_cliente: {
+        Row: {
+          venda_id: string
+          cliente_id: string
+          criado_em: string
+          forma_pagamento: FormaPagamento
+          status: StatusVenda
+          valor_total: number
+          desconto: number
+          valor_entrada: number
+          combinacao: string | null
+          vendedor_nome: string
+          item_id: string
+          produto_id: string
+          produto_nome: string
+          quantidade: number
+          preco_unitario: number
+          subtotal: number
+        }
+        Relationships: []
+      }
       vw_itens_fiado_pendente: {
         Row: {
           item_id: string
