@@ -33,6 +33,10 @@ export function BarcodeScannerModal({ open, onClose, onDetected }: BarcodeScanne
     setCameraError(false)
     const scanner = new Html5Qrcode(READER_ID, {
       formatsToSupport: FORMATOS_SUPORTADOS,
+      // usa o decodificador nativo do celular quando disponível (Android/Chrome
+      // principalmente) — muito mais rápido e preciso pra código de barras do
+      // que o decodificador em JS que a biblioteca usa como fallback
+      useBarCodeDetectorIfSupported: true,
       verbose: false,
     })
     scannerRef.current = scanner
