@@ -330,6 +330,7 @@ export interface Database {
           quantidade: number
           preco_unitario: number
           subtotal: number
+          valor_pago: number
         }
         Relationships: []
       }

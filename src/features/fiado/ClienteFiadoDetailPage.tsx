@@ -381,6 +381,10 @@ export function ClienteFiadoDetailPage() {
               {historicoPorVenda.map(([vendaId, itensDaVenda]) => {
                 const primeiro = itensDaVenda![0]
                 const valorTotal = Number(primeiro.valor_total)
+                const restanteVenda = itensDaVenda!.reduce(
+                  (acc, i) => acc + (Number(i.subtotal) - Number(i.valor_pago)),
+                  0,
+                )
                 return (
                   <div
                     key={vendaId}
@@ -403,8 +407,13 @@ export function ClienteFiadoDetailPage() {
                       {itensDaVenda!.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ')}
                     </p>
                     <p className="mt-1 font-semibold text-neutral-900">
-                      R$ {valorTotal.toFixed(2)}
+                      Valor da compra: R$ {valorTotal.toFixed(2)}
                     </p>
+                    {primeiro.status !== 'pago' && restanteVenda > 0 && (
+                      <p className="text-xs font-medium text-amber-600">
+                        Falta pagar: R$ {restanteVenda.toFixed(2)}
+                      </p>
+                    )}
                   </div>
                 )
               })}
