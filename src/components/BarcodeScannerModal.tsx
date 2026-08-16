@@ -46,13 +46,19 @@ export function BarcodeScannerModal({ open, onClose, onDetected }: BarcodeScanne
       .start(
         { facingMode: 'environment' },
         {
-          fps: 10,
+          // mais tentativas por segundo = acha o código mais rápido
+          fps: 20,
           // caixa larga e baixa: código de barras (EAN/UPC) é bem mais largo que alto
-          qrbox: { width: 300, height: 140 },
+          qrbox: { width: 280, height: 120 },
           videoConstraints: {
             facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            // resolução alta demais deixa cada quadro mais pesado de processar
+            // e paradoxalmente mais lento pra reconhecer; 720p é o ponto bom
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            // pede foco contínuo/automático quando o navegador suporta —
+            // ajuda bastante em código de barras pequeno de perto
+            advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
           },
         },
         (decodedText) => {
