@@ -1,0 +1,274 @@
+import { useMemo, useState } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { format } from 'date-fns'
+import toast from 'react-hot-toast'
+import { AppShell } from '../../components/layout/AppShell'
+import { useCliente } from '../clientes/hooks'
+import { useItensFiadoPendenteCliente, useRegistrarPagamentoItens } from './hooks'
+import { buscarSaldoCliente } from './api'
+import { buscarConfiguracoes } from '../configuracoes/api'
+import { gerarPdfPagamento } from './pdfPagamento'
+import { abrirWhatsApp } from '../../utils/whatsapp'
+
+interface Recibo {
+  valorPago: number
+  saldoRestante: number
+  dataHora: string
+  itens: string[]
+}
+
+export function ClienteFiadoDetailPage() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const { data: cliente } = useCliente(id)
+  const { data: itens, isLoading } = useItensFiadoPendenteCliente(id)
+  const registrarItens = useRegistrarPagamentoItens()
+
+  const [valores, setValores] = useState<Record<string, string>>({})
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
+  const [recibo, setRecibo] = useState<Recibo | null>(null)
+  const [gerandoPdf, setGerandoPdf] = useState(false)
+
+  const porVenda = useMemo(() => {
+    const mapa = new Map<string, typeof itens>()
+    for (const i of itens ?? []) {
+      const lista = mapa.get(i.venda_id) ?? []
+      lista.push(i)
+      mapa.set(i.venda_id, lista)
+    }
+    return Array.from(mapa.entries())
+  }, [itens])
+
+  const totalEmAberto = (itens ?? []).reduce((acc, i) => acc + Number(i.restante), 0)
+
+  function alternarItem(itemId: string, restante: number) {
+    setSelecionados((atual) => {
+      const novo = new Set(atual)
+      if (novo.has(itemId)) {
+        novo.delete(itemId)
+      } else {
+        novo.add(itemId)
+        setValores((v) => ({ ...v, [itemId]: restante.toFixed(2) }))
+      }
+      return novo
+    })
+  }
+
+  function marcarTodos() {
+    const novoSet = new Set((itens ?? []).map((i) => i.item_id))
+    const novosValores: Record<string, string> = {}
+    for (const i of itens ?? []) novosValores[i.item_id] = Number(i.restante).toFixed(2)
+    setSelecionados(novoSet)
+    setValores(novosValores)
+  }
+
+  function limparSelecao() {
+    setSelecionados(new Set())
+    setValores({})
+  }
+
+  const totalSelecionado = Array.from(selecionados).reduce(
+    (acc, id) => acc + (Number(valores[id]) || 0),
+    0,
+  )
+
+  async function handleConfirmar() {
+    const pagamentos = Array.from(selecionados)
+      .map((itemId) => ({ itemId, valor: Number(valores[itemId]) || 0 }))
+      .filter((p) => p.valor > 0)
+
+    if (pagamentos.length === 0) {
+      toast.error('Selecione ao menos um item e informe o valor')
+      return
+    }
+
+    const nomesItens = (itens ?? [])
+      .filter((i) => selecionados.has(i.item_id))
+      .map((i) => `${i.produto_nome} (R$ ${(Number(valores[i.item_id]) || 0).toFixed(2)})`)
+
+    try {
+      await registrarItens.mutateAsync(pagamentos)
+      const saldoRestante = await buscarSaldoCliente(id!)
+      setRecibo({
+        valorPago: pagamentos.reduce((acc, p) => acc + p.valor, 0),
+        saldoRestante,
+        dataHora: new Date().toISOString(),
+        itens: nomesItens,
+      })
+      limparSelecao()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao registrar pagamento')
+    }
+  }
+
+  async function handleGerarPdf() {
+    if (!recibo || !cliente) return
+    setGerandoPdf(true)
+    try {
+      const config = await buscarConfiguracoes()
+      await gerarPdfPagamento({
+        config,
+        nome: cliente.nome,
+        telefone: cliente.telefone,
+        valorPago: recibo.valorPago,
+        saldoRestante: recibo.saldoRestante,
+        dataHora: recibo.dataHora,
+      })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao gerar PDF')
+    } finally {
+      setGerandoPdf(false)
+    }
+  }
+
+  function mensagemWhatsApp(r: Recibo) {
+    let msg = `*Espaço Sperandir*\nRecebemos seu pagamento de R$ ${r.valorPago.toFixed(2)}.\n\nItens acertados:\n${r.itens.join('\n')}`
+    msg +=
+      r.saldoRestante > 0
+        ? `\n\nSaldo restante em aberto: R$ ${r.saldoRestante.toFixed(2)}`
+        : `\n\nSua conta a prazo está totalmente quitada. Obrigado!`
+    return msg
+  }
+
+  if (recibo) {
+    return (
+      <AppShell title="Pagamento registrado">
+        <div className="flex flex-col gap-4 p-4">
+          <div className="rounded-xl bg-neutral-50 p-4 ring-1 ring-neutral-200">
+            <p className="text-sm text-neutral-500">{cliente?.nome}</p>
+            <p className="text-lg font-semibold">R$ {recibo.valorPago.toFixed(2)}</p>
+            <p className="text-sm text-neutral-500">
+              {format(new Date(recibo.dataHora), 'dd/MM/yyyy HH:mm')}
+            </p>
+            <ul className="mt-2 text-sm text-neutral-600">
+              {recibo.itens.map((i) => (
+                <li key={i}>• {i}</li>
+              ))}
+            </ul>
+            <p className="mt-2 text-sm font-medium text-neutral-700">
+              {recibo.saldoRestante > 0
+                ? `Saldo restante: R$ ${recibo.saldoRestante.toFixed(2)}`
+                : 'Conta a prazo quitada 🎉'}
+            </p>
+          </div>
+
+          <button
+            onClick={handleGerarPdf}
+            disabled={gerandoPdf}
+            className="rounded-lg bg-amber-600 py-3 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {gerandoPdf ? 'Gerando PDF...' : 'Gerar PDF do recibo'}
+          </button>
+          <button
+            onClick={() => cliente && abrirWhatsApp(cliente.telefone, mensagemWhatsApp(recibo))}
+            className="rounded-lg bg-green-600 py-3 text-sm font-medium text-white"
+          >
+            Enviar por WhatsApp
+          </button>
+          <button
+            onClick={() => setRecibo(null)}
+            className="rounded-lg border border-neutral-300 py-3 text-sm font-medium"
+          >
+            {recibo.saldoRestante > 0 ? 'Registrar outro recebimento' : 'Voltar'}
+          </button>
+          <button
+            onClick={() => navigate('/fiado')}
+            className="text-center text-sm text-neutral-400 underline"
+          >
+            Voltar para A prazo
+          </button>
+        </div>
+      </AppShell>
+    )
+  }
+
+  return (
+    <AppShell title={cliente?.nome ?? 'Cliente'}>
+      <div className="flex flex-col gap-4 p-4 pb-28">
+        <Link to="/fiado" className="text-sm text-neutral-400 underline">
+          ← Voltar para A prazo
+        </Link>
+
+        <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
+          <p className="text-sm text-neutral-500">{cliente?.telefone}</p>
+          <p className="text-lg font-semibold text-red-700">Total em aberto: R$ {totalEmAberto.toFixed(2)}</p>
+        </div>
+
+        {isLoading && <p className="text-neutral-400">Carregando...</p>}
+
+        {!isLoading && porVenda.length === 0 && (
+          <p className="text-sm text-neutral-400">Nenhuma compra em aberto.</p>
+        )}
+
+        <div className="flex gap-2">
+          <button onClick={marcarTodos} className="text-sm text-neutral-600 underline">
+            Selecionar tudo (pagar tudo)
+          </button>
+          {selecionados.size > 0 && (
+            <button onClick={limparSelecao} className="text-sm text-neutral-400 underline">
+              Limpar seleção
+            </button>
+          )}
+        </div>
+
+        {porVenda.map(([vendaId, itensDaVenda]) => (
+          <div key={vendaId} className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
+            <p className="mb-2 text-xs font-medium text-neutral-500">
+              Compra de {format(new Date(itensDaVenda![0].venda_criado_em), 'dd/MM/yyyy')}
+              {itensDaVenda![0].combinacao && ` · Combinado: ${itensDaVenda![0].combinacao}`}
+            </p>
+            <ul className="flex flex-col gap-2">
+              {itensDaVenda!.map((i) => (
+                <li key={i.item_id} className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selecionados.has(i.item_id)}
+                    onChange={() => alternarItem(i.item_id, Number(i.restante))}
+                    className="h-4 w-4"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-neutral-900">
+                      {i.quantidade}x {i.produto_nome}
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      Restante: R$ {Number(i.restante).toFixed(2)}
+                      {Number(i.valor_pago) > 0 && ` (já pago R$ ${Number(i.valor_pago).toFixed(2)})`}
+                    </p>
+                  </div>
+                  {selecionados.has(i.item_id) && (
+                    <input
+                      type="number"
+                      step="0.01"
+                      max={i.restante}
+                      value={valores[i.item_id] ?? ''}
+                      onChange={(e) =>
+                        setValores((v) => ({ ...v, [i.item_id]: e.target.value }))
+                      }
+                      className="w-24 rounded-lg border border-neutral-300 px-2 py-1.5 text-right text-sm focus:outline-none"
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      {selecionados.size > 0 && (
+        <div className="fixed inset-x-0 bottom-16 border-t border-neutral-200 bg-white p-4">
+          <div className="mb-2 flex justify-between font-semibold">
+            <span>Total a receber</span>
+            <span>R$ {totalSelecionado.toFixed(2)}</span>
+          </div>
+          <button
+            onClick={handleConfirmar}
+            disabled={registrarItens.isPending}
+            className="w-full rounded-lg bg-[var(--cor-primaria)] py-3 text-base font-medium text-white disabled:opacity-50"
+          >
+            {registrarItens.isPending ? 'Registrando...' : 'Confirmar recebimento'}
+          </button>
+        </div>
+      )}
+    </AppShell>
+  )
+}

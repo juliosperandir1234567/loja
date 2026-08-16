@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --cor-primaria: #171717;
+  --imagem-fundo: none;
+}
+
+/* base maior deixa TODO texto em rem (a maioria do app) proporcionalmente
+   maior — pensado pra facilidade de leitura/uso no balcão, sem precisar
+   redesenhar tela por tela */
+html {
+  font-size: 18px;
+}
+
+body {
+  min-height: 100dvh;
+  background-color: #fafafa;
+  background-image: var(--imagem-fundo);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  line-height: 1.5;
+}
+
+/* toque confortável em qualquer botão/campo do app, mesmo os que não foram
+   redesenhados individualmente */
+button,
+a[role='button'],
+input,
+select,
+textarea {
+  min-height: 3rem;
+}
+
+textarea {
+  min-height: 4.5rem;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  min-height: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

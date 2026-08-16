@@ -1,0 +1,104 @@
+import { useEffect, useRef, useState } from 'react'
+import { Html5Qrcode } from 'html5-qrcode'
+
+interface BarcodeScannerModalProps {
+  open: boolean
+  onClose: () => void
+  onDetected: (codigo: string) => void
+}
+
+const READER_ID = 'barcode-scanner-reader'
+
+export function BarcodeScannerModal({ open, onClose, onDetected }: BarcodeScannerModalProps) {
+  const scannerRef = useRef<Html5Qrcode | null>(null)
+  const [cameraError, setCameraError] = useState(false)
+  const [manualCodigo, setManualCodigo] = useState('')
+
+  useEffect(() => {
+    if (!open) return
+
+    setCameraError(false)
+    const scanner = new Html5Qrcode(READER_ID)
+    scannerRef.current = scanner
+    let cancelled = false
+
+    scanner
+      .start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 150 } },
+        (decodedText) => {
+          if (cancelled) return
+          cancelled = true
+          onDetected(decodedText.trim())
+        },
+        () => {
+          // erro de leitura por frame, ignorado — não indica falha de câmera
+        },
+      )
+      .catch(() => {
+        if (!cancelled) setCameraError(true)
+      })
+
+    return () => {
+      cancelled = true
+      scanner
+        .stop()
+        .then(() => scanner.clear())
+        .catch(() => {})
+      scannerRef.current = null
+    }
+  }, [open, onDetected])
+
+  if (!open) return null
+
+  function handleManualSubmit() {
+    const codigo = manualCodigo.trim()
+    if (codigo) onDetected(codigo)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/90 p-4">
+      <div className="flex items-center justify-between text-white">
+        <h2 className="text-base font-medium">Escanear código de barras</h2>
+        <button onClick={onClose} className="rounded-full bg-white/10 px-3 py-1.5 text-sm">
+          Fechar
+        </button>
+      </div>
+
+      {!cameraError && (
+        <div className="mt-4 overflow-hidden rounded-xl">
+          <div id={READER_ID} className="w-full" />
+        </div>
+      )}
+
+      <div className="mt-6 rounded-xl bg-white p-4">
+        {cameraError && (
+          <p className="mb-3 text-sm text-red-600">
+            Não foi possível acessar a câmera. Digite o código manualmente abaixo.
+          </p>
+        )}
+        <label className="mb-2 block text-sm font-medium text-neutral-700">
+          Ou digite o código manualmente
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            inputMode="numeric"
+            value={manualCodigo}
+            onChange={(e) => setManualCodigo(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
+            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+            placeholder="Código de barras"
+            autoFocus={cameraError}
+          />
+          <button
+            onClick={handleManualSubmit}
+            className="rounded-lg bg-[var(--cor-primaria)] px-4 py-2.5 text-sm font-medium text-white"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
