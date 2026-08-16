@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 
 interface BarcodeScannerModalProps {
   open: boolean
@@ -8,6 +8,19 @@ interface BarcodeScannerModalProps {
 }
 
 const READER_ID = 'barcode-scanner-reader'
+
+// restringe aos formatos usados em produtos de mercado/perfumaria — evita que o
+// scanner gaste ciclos tentando decodificar QR/DataMatrix/PDF417 em todo frame,
+// o que deixava a leitura de código de barras (EAN/UPC) mais lenta e imprecisa
+const FORMATOS_SUPORTADOS = [
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
+  Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.CODE_39,
+  Html5QrcodeSupportedFormats.QR_CODE,
+]
 
 export function BarcodeScannerModal({ open, onClose, onDetected }: BarcodeScannerModalProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null)
@@ -18,14 +31,26 @@ export function BarcodeScannerModal({ open, onClose, onDetected }: BarcodeScanne
     if (!open) return
 
     setCameraError(false)
-    const scanner = new Html5Qrcode(READER_ID)
+    const scanner = new Html5Qrcode(READER_ID, {
+      formatsToSupport: FORMATOS_SUPORTADOS,
+      verbose: false,
+    })
     scannerRef.current = scanner
     let cancelled = false
 
     scanner
       .start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 150 } },
+        {
+          fps: 10,
+          // caixa larga e baixa: código de barras (EAN/UPC) é bem mais largo que alto
+          qrbox: { width: 300, height: 140 },
+          videoConstraints: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        },
         (decodedText) => {
           if (cancelled) return
           cancelled = true
@@ -66,9 +91,14 @@ export function BarcodeScannerModal({ open, onClose, onDetected }: BarcodeScanne
       </div>
 
       {!cameraError && (
-        <div className="mt-4 overflow-hidden rounded-xl">
-          <div id={READER_ID} className="w-full" />
-        </div>
+        <>
+          <div className="mt-4 overflow-hidden rounded-xl">
+            <div id={READER_ID} className="w-full" />
+          </div>
+          <p className="mt-2 text-center text-sm text-white/70">
+            Aproxime bem o código de barras, com boa luz, até encher a caixa
+          </p>
+        </>
       )}
 
       <div className="mt-6 rounded-xl bg-white p-4">
