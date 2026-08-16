@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { ClientePicker } from '../../components/ClientePicker'
+import { precoEfetivo } from '../produtos/api'
 import type { Cliente } from '../clientes/api'
 import type { FormaPagamento } from '../../types/database.types'
+import type { CarrinhoItem } from './PdvPage'
 
 const OPCOES: { valor: FormaPagamento; label: string }[] = [
   { valor: 'a_vista', label: 'À vista (dinheiro/PIX)' },
@@ -10,10 +12,12 @@ const OPCOES: { valor: FormaPagamento; label: string }[] = [
 ]
 
 export function FormaPagamentoStep({
+  itens,
   total,
   onConfirmar,
   onVoltar,
 }: {
+  itens: CarrinhoItem[]
   total: number
   onConfirmar: (params: {
     formaPagamento: FormaPagamento
@@ -46,6 +50,24 @@ export function FormaPagamentoStep({
 
   return (
     <div className="flex flex-col gap-4 p-4">
+      <div className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
+        <p className="mb-2 text-sm font-bold text-neutral-700">
+          {itens.reduce((acc, i) => acc + i.quantidade, 0)} item(ns) nesta venda
+        </p>
+        <ul className="flex flex-col gap-1">
+          {itens.map((i) => (
+            <li key={i.produto.id} className="flex justify-between text-sm">
+              <span className="text-neutral-700">
+                {i.quantidade}x {i.produto.nome}
+              </span>
+              <span className="font-medium text-neutral-900">
+                R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
       <div>
         <p className="text-lg font-semibold">Total: R$ {totalComDesconto.toFixed(2)}</p>
         {numeroDesconto > 0 && (

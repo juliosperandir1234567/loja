@@ -107,6 +107,7 @@ export function PdvPage() {
     return (
       <AppShell title="Forma de pagamento">
         <FormaPagamentoStep
+          itens={carrinho}
           total={total}
           onVoltar={() => setEtapa('carrinho')}
           onConfirmar={(p) => {
@@ -146,7 +147,7 @@ export function PdvPage() {
 
   return (
     <AppShell title="Vender">
-      <div className="flex flex-col gap-4 p-4">
+      <div className={`flex flex-col gap-4 p-4 ${carrinho.length > 0 ? 'pb-32' : ''}`}>
         <ProdutoGridPicker onSelect={adicionarProduto} />
 
         {carrinho.length > 0 && (
