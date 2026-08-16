@@ -41,6 +41,8 @@ export function ClienteFiadoDetailPage() {
   const [gerandoPdf, setGerandoPdf] = useState(false)
   const [pagandoTudo, setPagandoTudo] = useState(false)
   const [mostrarHistorico, setMostrarHistorico] = useState(false)
+  const [valorParcial, setValorParcial] = useState('')
+  const [pagandoParcial, setPagandoParcial] = useState(false)
 
   const porVenda = useMemo(() => {
     const mapa = new Map<string, typeof itens>()
@@ -139,6 +141,30 @@ export function ClienteFiadoDetailPage() {
     )
     await processarPagamento(pagamentos, nomesItens)
     setPagandoTudo(false)
+  }
+
+  async function handlePagamentoParcial() {
+    const valorInformado = Number(valorParcial.replace(',', '.'))
+    if (!itens || itens.length === 0 || !valorInformado || valorInformado <= 0) return
+    if (valorInformado > totalEmAberto) {
+      toast.error('Valor maior que o total em aberto')
+      return
+    }
+    setPagandoParcial(true)
+    let restanteParaDistribuir = valorInformado
+    const pagamentos: { itemId: string; valor: number }[] = []
+    const nomesItens: string[] = []
+    for (const i of itens) {
+      if (restanteParaDistribuir <= 0) break
+      const valorItem = Math.min(Number(i.restante), restanteParaDistribuir)
+      if (valorItem <= 0) continue
+      pagamentos.push({ itemId: i.item_id, valor: Number(valorItem.toFixed(2)) })
+      nomesItens.push(`${i.produto_nome} (R$ ${valorItem.toFixed(2)})`)
+      restanteParaDistribuir -= valorItem
+    }
+    await processarPagamento(pagamentos, nomesItens)
+    setValorParcial('')
+    setPagandoParcial(false)
   }
 
   async function handleGerarPdf() {
@@ -248,6 +274,39 @@ export function ClienteFiadoDetailPage() {
           >
             {pagandoTudo ? 'Registrando...' : `Pagamento total — R$ ${totalEmAberto.toFixed(2)}`}
           </button>
+        )}
+
+        {totalEmAberto > 0 && (
+          <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
+            <p className="mb-2 text-sm font-medium text-neutral-700">
+              Ou informe o valor recebido agora
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max={totalEmAberto}
+                placeholder="0,00"
+                value={valorParcial}
+                onChange={(e) => setValorParcial(e.target.value)}
+                className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none"
+              />
+              <button
+                onClick={handlePagamentoParcial}
+                disabled={pagandoParcial || registrarItens.isPending || !valorParcial}
+                className="rounded-lg bg-[var(--cor-primaria)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              >
+                {pagandoParcial ? 'Registrando...' : 'Registrar'}
+              </button>
+            </div>
+            {Number(valorParcial.replace(',', '.')) > 0 && (
+              <p className="mt-2 text-xs text-neutral-500">
+                Ficará faltando: R${' '}
+                {Math.max(0, totalEmAberto - Number(valorParcial.replace(',', '.'))).toFixed(2)}
+              </p>
+            )}
+          </div>
         )}
 
         {porVenda.length > 0 && (
