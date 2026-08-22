@@ -5,7 +5,7 @@ import { precoEfetivo, nomeCompleto } from '../produtos/api'
 
 export function EtiquetasPage() {
   const [busca, setBusca] = useState('')
-  const { data: produtos } = useProdutos(busca)
+  const { data: produtos } = useProdutos({ nome: busca })
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
 
   function alternar(id: string) {

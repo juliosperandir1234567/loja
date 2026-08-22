@@ -8,7 +8,7 @@ export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) =
   const [busca, setBusca] = useState('')
   const [marcaAtiva, setMarcaAtiva] = useState<'Todos' | (typeof MARCAS)[number]>('Todos')
   const [scannerOpen, setScannerOpen] = useState(false)
-  const { data: produtos } = useProdutos(busca)
+  const { data: produtos } = useProdutos({ nome: busca })
 
   const produtosFiltrados = (produtos ?? []).filter(
     (p) => marcaAtiva === 'Todos' || p.marca === marcaAtiva,

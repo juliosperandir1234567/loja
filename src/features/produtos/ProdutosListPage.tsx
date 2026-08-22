@@ -1,16 +1,27 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useProdutos } from './hooks'
+import { MARCAS } from './api'
 import { AppShell } from '../../components/layout/AppShell'
+
+const TIPOS = ['Masculino', 'Feminino', 'Unissex'] as const
 
 export function ProdutosListPage() {
   const [busca, setBusca] = useState('')
-  const { data: produtos, isLoading } = useProdutos(busca)
+  const [fragrancia, setFragrancia] = useState('')
+  const [tipo, setTipo] = useState('')
+  const [marca, setMarca] = useState<'Todos' | (typeof MARCAS)[number]>('Todos')
+  const { data: produtos, isLoading } = useProdutos({
+    nome: busca,
+    fragrancia,
+    tipo,
+    marca: marca === 'Todos' ? undefined : marca,
+  })
 
   return (
     <AppShell title="Produtos">
       <div className="p-4">
-        <div className="mb-4 flex gap-2">
+        <div className="mb-2 flex gap-2">
           <input
             type="text"
             value={busca}
@@ -24,6 +35,44 @@ export function ProdutosListPage() {
           >
             + Novo
           </Link>
+        </div>
+
+        <div className="mb-2 flex gap-2">
+          <input
+            type="text"
+            value={fragrancia}
+            onChange={(e) => setFragrancia(e.target.value)}
+            placeholder="Buscar por fragrância..."
+            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+          />
+          <select
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
+            className="rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+          >
+            <option value="">Todos os tipos</option>
+            {TIPOS.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+          {(['Todos', ...MARCAS] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMarca(m)}
+              className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${
+                marca === m
+                  ? 'bg-[var(--cor-primaria)] text-white'
+                  : 'bg-white text-neutral-600 ring-1 ring-neutral-200'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
         </div>
 
         <Link

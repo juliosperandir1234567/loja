@@ -6,7 +6,7 @@ import { precoEfetivo } from './api'
 
 export function PrecosEmMassaPage() {
   const [busca, setBusca] = useState('')
-  const { data: produtos, isLoading } = useProdutos(busca)
+  const { data: produtos, isLoading } = useProdutos({ nome: busca })
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
   const [novoCusto, setNovoCusto] = useState('')
   const [novaRevista, setNovaRevista] = useState('')

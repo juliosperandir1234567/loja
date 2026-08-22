@@ -1,13 +1,23 @@
 import { supabase } from '../../lib/supabaseClient'
-import type { Database, Marca } from '../../types/database.types'
+import type { Database, Marca, TipoProduto } from '../../types/database.types'
 
 export type Produto = Database['public']['Tables']['produtos']['Row']
 export type ProdutoInsert = Database['public']['Tables']['produtos']['Insert']
 export type ProdutoUpdate = Database['public']['Tables']['produtos']['Update']
 
-export async function listarProdutos(busca?: string) {
+export interface FiltroProdutos {
+  nome?: string
+  fragrancia?: string
+  tipo?: string
+  marca?: string
+}
+
+export async function listarProdutos(filtros: FiltroProdutos = {}) {
   let query = supabase.from('produtos').select('*').eq('ativo', true).order('nome')
-  if (busca) query = query.ilike('nome', `%${busca}%`)
+  if (filtros.nome) query = query.ilike('nome', `%${filtros.nome}%`)
+  if (filtros.fragrancia) query = query.ilike('fragrancia_linha', `%${filtros.fragrancia}%`)
+  if (filtros.tipo) query = query.eq('tipo', filtros.tipo as TipoProduto)
+  if (filtros.marca) query = query.eq('marca', filtros.marca as Marca)
   const { data, error } = await query
   if (error) throw error
   return data

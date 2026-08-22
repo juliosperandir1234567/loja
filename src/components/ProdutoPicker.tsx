@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 export function ProdutoPicker({ onSelect }: { onSelect: (produto: Produto) => void }) {
   const [busca, setBusca] = useState('')
   const [scannerOpen, setScannerOpen] = useState(false)
-  const { data: produtos } = useProdutos(busca)
+  const { data: produtos } = useProdutos({ nome: busca })
 
   async function handleDetected(codigo: string) {
     setScannerOpen(false)

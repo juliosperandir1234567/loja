@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as api from './api'
-import type { ProdutoInsert, ProdutoUpdate } from './api'
+import type { ProdutoInsert, ProdutoUpdate, FiltroProdutos } from './api'
 import { listarCatalogoProdutos } from './ean'
 
 export function useCatalogoProdutos(enabled: boolean) {
@@ -12,10 +12,10 @@ export function useCatalogoProdutos(enabled: boolean) {
   })
 }
 
-export function useProdutos(busca?: string) {
+export function useProdutos(filtros: FiltroProdutos = {}) {
   return useQuery({
-    queryKey: ['produtos', busca ?? ''],
-    queryFn: () => api.listarProdutos(busca),
+    queryKey: ['produtos', filtros],
+    queryFn: () => api.listarProdutos(filtros),
   })
 }
 
