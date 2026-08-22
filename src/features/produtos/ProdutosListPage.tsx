@@ -26,6 +26,13 @@ export function ProdutosListPage() {
           </Link>
         </div>
 
+        <Link
+          to="/produtos/precos"
+          className="mb-4 flex items-center justify-center rounded-lg border border-neutral-300 py-2.5 text-sm font-medium text-neutral-700"
+        >
+          Preços em massa
+        </Link>
+
         {isLoading && <p className="text-neutral-400">Carregando...</p>}
 
         <ul className="flex flex-col gap-2">

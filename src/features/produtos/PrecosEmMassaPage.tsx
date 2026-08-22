@@ -1,0 +1,174 @@
+import { useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
+import { AppShell } from '../../components/layout/AppShell'
+import { useProdutos, useAtualizarPrecoEmMassa } from './hooks'
+import { precoEfetivo } from './api'
+
+export function PrecosEmMassaPage() {
+  const [busca, setBusca] = useState('')
+  const { data: produtos, isLoading } = useProdutos(busca)
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
+  const [novoPreco, setNovoPreco] = useState('')
+  const [confirmando, setConfirmando] = useState(false)
+  const atualizarPrecoEmMassa = useAtualizarPrecoEmMassa()
+
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, typeof produtos>()
+    for (const p of produtos ?? []) {
+      const chave = `${p.marca} · ${p.nome}`
+      if (!mapa.has(chave)) mapa.set(chave, [])
+      mapa.get(chave)!.push(p)
+    }
+    return [...mapa.entries()].sort(([a], [b]) => a.localeCompare(b))
+  }, [produtos])
+
+  function alternar(id: string) {
+    setSelecionados((atual) => {
+      const novo = new Set(atual)
+      if (novo.has(id)) novo.delete(id)
+      else novo.add(id)
+      return novo
+    })
+  }
+
+  function alternarGrupo(itensDoGrupo: { id: string }[]) {
+    const idsDoGrupo = itensDoGrupo.map((p) => p.id)
+    const todosSelecionados = idsDoGrupo.every((id) => selecionados.has(id))
+    setSelecionados((atual) => {
+      const novo = new Set(atual)
+      idsDoGrupo.forEach((id) => (todosSelecionados ? novo.delete(id) : novo.add(id)))
+      return novo
+    })
+  }
+
+  const valorNovoPreco = Number(novoPreco.replace(',', '.'))
+  const precoValido = novoPreco !== '' && valorNovoPreco > 0
+
+  async function aplicar() {
+    if (!precoValido || selecionados.size === 0) return
+    try {
+      await atualizarPrecoEmMassa.mutateAsync({
+        ids: [...selecionados],
+        precoVenda: valorNovoPreco,
+      })
+      toast.success(`Preço atualizado em ${selecionados.size} produto(s)`)
+      setSelecionados(new Set())
+      setNovoPreco('')
+      setConfirmando(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar preços')
+    }
+  }
+
+  return (
+    <AppShell title="Preços em massa">
+      <div className="flex flex-col gap-4 p-4 pb-28">
+        <input
+          type="text"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar linha por nome..."
+          className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+        />
+
+        {isLoading && <p className="text-neutral-400">Carregando...</p>}
+
+        <div className="flex flex-col gap-3">
+          {grupos.map(([chave, itens]) => {
+            const lista = itens ?? []
+            const idsDoGrupo = lista.map((p) => p.id)
+            const todosSelecionados = idsDoGrupo.length > 0 && idsDoGrupo.every((id) => selecionados.has(id))
+            const estoqueTotal = lista.reduce((acc, p) => acc + p.estoque_atual, 0)
+
+            return (
+              <div key={chave} className="rounded-xl bg-white ring-1 ring-neutral-200">
+                <label className="flex items-center justify-between gap-2 border-b border-neutral-100 p-3">
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={todosSelecionados}
+                      onChange={() => alternarGrupo(lista)}
+                      className="h-4 w-4"
+                    />
+                    <span className="font-medium text-neutral-900">{chave}</span>
+                  </span>
+                  <span className="text-sm text-neutral-500">{estoqueTotal} em estoque</span>
+                </label>
+
+                <ul className="flex flex-col divide-y divide-neutral-100">
+                  {lista.map((p) => (
+                    <li key={p.id}>
+                      <label className="flex items-center justify-between gap-2 px-3 py-2.5">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selecionados.has(p.id)}
+                            onChange={() => alternar(p.id)}
+                            className="h-4 w-4 shrink-0"
+                          />
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm text-neutral-900">
+                              {p.fragrancia_linha || '(sem variante)'}
+                              {p.tamanho ? ` · ${p.tamanho}` : ''}
+                            </span>
+                            <span
+                              className={`text-xs ${
+                                p.estoque_atual <= p.estoque_minimo ? 'font-medium text-red-600' : 'text-neutral-400'
+                              }`}
+                            >
+                              {p.estoque_atual} em estoque
+                            </span>
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-sm font-medium text-neutral-900">
+                          R$ {precoEfetivo(p).toFixed(2)}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          })}
+
+          {!isLoading && grupos.length === 0 && (
+            <p className="mt-8 text-center text-neutral-400">Nenhum produto encontrado.</p>
+          )}
+        </div>
+      </div>
+
+      {selecionados.size > 0 && (
+        <div className="fixed inset-x-0 bottom-0 flex flex-col gap-2 border-t border-neutral-200 bg-white p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+          <p className="text-sm text-neutral-600">{selecionados.size} produto(s) selecionado(s)</p>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              step="0.01"
+              min={0}
+              value={novoPreco}
+              onChange={(e) => {
+                setNovoPreco(e.target.value)
+                setConfirmando(false)
+              }}
+              placeholder="Novo preço revista (R$)"
+              className="flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+            />
+            <button
+              onClick={() => (confirmando ? aplicar() : setConfirmando(true))}
+              disabled={!precoValido || atualizarPrecoEmMassa.isPending}
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 ${
+                confirmando ? 'bg-red-600' : 'bg-[var(--cor-primaria)]'
+              }`}
+            >
+              {atualizarPrecoEmMassa.isPending
+                ? 'Aplicando...'
+                : confirmando
+                  ? 'Confirmar?'
+                  : 'Aplicar'}
+            </button>
+          </div>
+        </div>
+      )}
+    </AppShell>
+  )
+}

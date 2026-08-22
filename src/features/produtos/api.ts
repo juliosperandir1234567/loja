@@ -62,6 +62,11 @@ export async function atualizarProduto(id: string, produto: ProdutoUpdate) {
   return data
 }
 
+export async function atualizarPrecoEmMassa(ids: string[], precoVenda: number) {
+  const { error } = await supabase.from('produtos').update({ preco_venda: precoVenda }).in('id', ids)
+  if (error) throw error
+}
+
 export async function deletarProduto(id: string) {
   const { error } = await supabase.from('produtos').delete().eq('id', id)
   if (error) {

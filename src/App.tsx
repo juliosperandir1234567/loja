@@ -4,6 +4,7 @@ import { HomePage } from './features/auth/HomePage'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { ProdutosListPage } from './features/produtos/ProdutosListPage'
 import { ProdutoFormPage } from './features/produtos/ProdutoFormPage'
+import { PrecosEmMassaPage } from './features/produtos/PrecosEmMassaPage'
 import { EstoqueHomePage } from './features/estoque/EstoqueHomePage'
 import { EntradaEstoquePage } from './features/estoque/EntradaEstoquePage'
 import { SaidaManualPage } from './features/estoque/SaidaManualPage'
@@ -48,6 +49,14 @@ export default function App() {
           element={
             <ProtectedRoute allow={['admin']}>
               <ProdutoFormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/produtos/precos"
+          element={
+            <ProtectedRoute allow={['admin']}>
+              <PrecosEmMassaPage />
             </ProtectedRoute>
           }
         />
