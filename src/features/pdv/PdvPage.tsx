@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import { AppShell } from '../../components/layout/AppShell'
 import { ProdutoGridPicker } from '../../components/ProdutoGridPicker'
 import type { Produto } from '../produtos/api'
-import { precoEfetivo } from '../produtos/api'
+import { precoEfetivo, nomeCompleto } from '../produtos/api'
 import type { Cliente } from '../clientes/api'
 import type { FormaPagamento } from '../../types/database.types'
 import type { Venda } from './api'
@@ -162,7 +162,7 @@ export function PdvPage() {
                   className="flex items-center justify-between rounded-2xl bg-white p-3 ring-1 ring-neutral-200"
                 >
                   <div className="min-w-0 pr-2">
-                    <p className="truncate font-semibold text-neutral-900">{item.produto.nome}</p>
+                    <p className="truncate font-semibold text-neutral-900">{nomeCompleto(item.produto)}</p>
                     <p className="text-sm text-neutral-500">
                       R$ {precoEfetivo(item.produto).toFixed(2)} un.
                       {item.produto.preco_promocional && (

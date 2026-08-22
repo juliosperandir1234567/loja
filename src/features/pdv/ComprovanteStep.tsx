@@ -8,7 +8,7 @@ import { abrirWhatsApp } from '../../utils/whatsapp'
 import { buscarSaldoCliente } from '../fiado/api'
 import { gerarPdfFiado } from '../fiado/pdfFiado'
 import { buscarConfiguracoes, type Configuracoes } from '../configuracoes/api'
-import { precoEfetivo } from '../produtos/api'
+import { precoEfetivo, nomeCompleto } from '../produtos/api'
 
 const FORMA_LABEL: Record<string, string> = {
   a_vista: 'À vista',
@@ -74,7 +74,7 @@ export function ComprovanteStep({
   // cliente e saldo em aberto quando a prazo)
   function montarMensagem() {
     const linhas = itens
-      .map((i) => `${i.quantidade}x ${i.produto.nome} — R$ ${(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}`)
+      .map((i) => `${i.quantidade}x ${nomeCompleto(i.produto)} — R$ ${(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}`)
       .join('\n')
 
     let msg = `*${nomeLoja}*\nComprovante de venda\n\n${linhas}`
@@ -140,7 +140,7 @@ export function ComprovanteStep({
           {itens.map((i) => (
             <li key={i.produto.id} className="flex justify-between text-sm">
               <span>
-                {i.quantidade}x {i.produto.nome}
+                {i.quantidade}x {nomeCompleto(i.produto)}
               </span>
               <span>R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}</span>
             </li>

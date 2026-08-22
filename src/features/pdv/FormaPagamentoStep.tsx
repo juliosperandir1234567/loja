@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ClientePicker } from '../../components/ClientePicker'
-import { precoEfetivo } from '../produtos/api'
+import { precoEfetivo, nomeCompleto } from '../produtos/api'
 import type { Cliente } from '../clientes/api'
 import type { FormaPagamento } from '../../types/database.types'
 import type { CarrinhoItem } from './PdvPage'
@@ -58,7 +58,7 @@ export function FormaPagamentoStep({
           {itens.map((i) => (
             <li key={i.produto.id} className="flex justify-between text-sm">
               <span className="text-neutral-700">
-                {i.quantidade}x {i.produto.nome}
+                {i.quantidade}x {nomeCompleto(i.produto)}
               </span>
               <span className="font-medium text-neutral-900">
                 R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}

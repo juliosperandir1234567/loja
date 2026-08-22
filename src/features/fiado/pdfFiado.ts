@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import type { Cliente } from '../clientes/api'
 import type { CarrinhoItem } from '../pdv/PdvPage'
 import type { Venda } from '../pdv/api'
-import { precoEfetivo } from '../produtos/api'
+import { precoEfetivo, nomeCompleto } from '../produtos/api'
 
 interface ConfigLoja {
   nome_loja: string
@@ -71,7 +71,7 @@ export async function gerarPdfFiado(params: {
     startY: 68,
     head: [['Produto', 'Qtd', 'Preço unit.', 'Subtotal']],
     body: itens.map((i) => [
-      i.produto.nome,
+      nomeCompleto(i.produto),
       String(i.quantidade),
       `R$ ${precoEfetivo(i.produto).toFixed(2)}`,
       `R$ ${(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}`,

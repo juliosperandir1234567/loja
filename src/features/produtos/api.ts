@@ -90,3 +90,7 @@ export const MARCAS: Marca[] = ['Natura', 'Boticário']
 export function precoEfetivo(produto: Pick<Produto, 'preco_venda' | 'preco_promocional'>) {
   return produto.preco_promocional ?? produto.preco_venda
 }
+
+export function nomeCompleto(produto: Pick<Produto, 'nome' | 'fragrancia_linha'>) {
+  return produto.fragrancia_linha ? `${produto.nome} - ${produto.fragrancia_linha}` : produto.nome
+}
