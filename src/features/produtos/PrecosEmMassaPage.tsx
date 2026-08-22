@@ -8,7 +8,9 @@ export function PrecosEmMassaPage() {
   const [busca, setBusca] = useState('')
   const { data: produtos, isLoading } = useProdutos(busca)
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
-  const [novoPreco, setNovoPreco] = useState('')
+  const [novoCusto, setNovoCusto] = useState('')
+  const [novaRevista, setNovaRevista] = useState('')
+  const [novaPromocao, setNovaPromocao] = useState('')
   const [confirmando, setConfirmando] = useState(false)
   const atualizarPrecoEmMassa = useAtualizarPrecoEmMassa()
 
@@ -41,19 +43,34 @@ export function PrecosEmMassaPage() {
     })
   }
 
-  const valorNovoPreco = Number(novoPreco.replace(',', '.'))
-  const precoValido = novoPreco !== '' && valorNovoPreco > 0
+  const valorCusto = Number(novoCusto.replace(',', '.'))
+  const valorRevista = Number(novaRevista.replace(',', '.'))
+  const valorPromocao = Number(novaPromocao.replace(',', '.'))
+
+  const custoValido = novoCusto !== '' && valorCusto >= 0
+  const revistaValida = novaRevista !== '' && valorRevista > 0
+  const promocaoValida = novaPromocao !== '' && valorPromocao > 0
+
+  const promocaoMaiorQueRevista =
+    promocaoValida && revistaValida && valorPromocao >= valorRevista
+
+  const algumCampoPreenchido = custoValido || revistaValida || promocaoValida
+  const podeAplicar = algumCampoPreenchido && !promocaoMaiorQueRevista
 
   async function aplicar() {
-    if (!precoValido || selecionados.size === 0) return
+    if (!podeAplicar || selecionados.size === 0) return
     try {
-      await atualizarPrecoEmMassa.mutateAsync({
-        ids: [...selecionados],
-        precoVenda: valorNovoPreco,
-      })
+      const precos: { preco_custo?: number; preco_venda?: number; preco_promocional?: number } = {}
+      if (custoValido) precos.preco_custo = valorCusto
+      if (revistaValida) precos.preco_venda = valorRevista
+      if (promocaoValida) precos.preco_promocional = valorPromocao
+
+      await atualizarPrecoEmMassa.mutateAsync({ ids: [...selecionados], precos })
       toast.success(`Preço atualizado em ${selecionados.size} produto(s)`)
       setSelecionados(new Set())
-      setNovoPreco('')
+      setNovoCusto('')
+      setNovaRevista('')
+      setNovaPromocao('')
       setConfirmando(false)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao atualizar preços')
@@ -120,8 +137,13 @@ export function PrecosEmMassaPage() {
                             </span>
                           </span>
                         </span>
-                        <span className="shrink-0 text-sm font-medium text-neutral-900">
-                          R$ {precoEfetivo(p).toFixed(2)}
+                        <span className="shrink-0 text-right text-sm">
+                          <span className="block font-medium text-neutral-900">
+                            R$ {precoEfetivo(p).toFixed(2)}
+                          </span>
+                          <span className="text-xs text-neutral-400">
+                            custo R$ {Number(p.preco_custo).toFixed(2)}
+                          </span>
                         </span>
                       </label>
                     </li>
@@ -139,34 +161,59 @@ export function PrecosEmMassaPage() {
 
       {selecionados.size > 0 && (
         <div className="fixed inset-x-0 bottom-0 flex flex-col gap-2 border-t border-neutral-200 bg-white p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-          <p className="text-sm text-neutral-600">{selecionados.size} produto(s) selecionado(s)</p>
+          <p className="text-sm text-neutral-600">
+            {selecionados.size} produto(s) selecionado(s) · deixe em branco o que não quiser alterar
+          </p>
           <div className="flex gap-2">
             <input
               type="number"
               step="0.01"
               min={0}
-              value={novoPreco}
+              value={novoCusto}
               onChange={(e) => {
-                setNovoPreco(e.target.value)
+                setNovoCusto(e.target.value)
                 setConfirmando(false)
               }}
-              placeholder="Novo preço revista (R$)"
-              className="flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+              placeholder="Preço de custo"
+              className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 py-2.5 text-sm focus:border-neutral-900 focus:outline-none"
             />
-            <button
-              onClick={() => (confirmando ? aplicar() : setConfirmando(true))}
-              disabled={!precoValido || atualizarPrecoEmMassa.isPending}
-              className={`rounded-lg px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 ${
-                confirmando ? 'bg-red-600' : 'bg-[var(--cor-primaria)]'
-              }`}
-            >
-              {atualizarPrecoEmMassa.isPending
-                ? 'Aplicando...'
-                : confirmando
-                  ? 'Confirmar?'
-                  : 'Aplicar'}
-            </button>
+            <input
+              type="number"
+              step="0.01"
+              min={0}
+              value={novaRevista}
+              onChange={(e) => {
+                setNovaRevista(e.target.value)
+                setConfirmando(false)
+              }}
+              placeholder="Preço Revista"
+              className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 py-2.5 text-sm focus:border-neutral-900 focus:outline-none"
+            />
+            <input
+              type="number"
+              step="0.01"
+              min={0}
+              value={novaPromocao}
+              onChange={(e) => {
+                setNovaPromocao(e.target.value)
+                setConfirmando(false)
+              }}
+              placeholder="Promoção"
+              className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 py-2.5 text-sm focus:border-neutral-900 focus:outline-none"
+            />
           </div>
+          {promocaoMaiorQueRevista && (
+            <p className="text-sm text-red-600">O preço de promoção deve ser menor que o Preço Revista</p>
+          )}
+          <button
+            onClick={() => (confirmando ? aplicar() : setConfirmando(true))}
+            disabled={!podeAplicar || atualizarPrecoEmMassa.isPending}
+            className={`rounded-lg px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 ${
+              confirmando ? 'bg-red-600' : 'bg-[var(--cor-primaria)]'
+            }`}
+          >
+            {atualizarPrecoEmMassa.isPending ? 'Aplicando...' : confirmando ? 'Confirmar?' : 'Aplicar'}
+          </button>
         </div>
       )}
     </AppShell>

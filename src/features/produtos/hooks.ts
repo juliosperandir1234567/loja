@@ -48,8 +48,13 @@ export function useAtualizarProduto() {
 export function useAtualizarPrecoEmMassa() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ ids, precoVenda }: { ids: string[]; precoVenda: number }) =>
-      api.atualizarPrecoEmMassa(ids, precoVenda),
+    mutationFn: ({
+      ids,
+      precos,
+    }: {
+      ids: string[]
+      precos: { preco_custo?: number; preco_venda?: number; preco_promocional?: number | null }
+    }) => api.atualizarPrecoEmMassa(ids, precos),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['produtos'] }),
   })
 }
