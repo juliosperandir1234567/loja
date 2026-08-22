@@ -9,7 +9,10 @@ const TIPO_LABEL: Record<string, string> = {
   saida_manual: 'Saída manual',
   venda: 'Venda',
   ajuste: 'Ajuste',
+  estoque_inicial: 'Estoque inicial',
 }
+
+const TIPOS_POSITIVOS = ['entrada', 'estoque_inicial']
 
 export function HistoricoProdutoPage() {
   const { id } = useParams()
@@ -27,10 +30,10 @@ export function HistoricoProdutoPage() {
               <span className="font-medium">{TIPO_LABEL[m.tipo] ?? m.tipo}</span>
               <span
                 className={
-                  m.tipo === 'entrada' ? 'font-medium text-green-600' : 'font-medium text-red-600'
+                  TIPOS_POSITIVOS.includes(m.tipo) ? 'font-medium text-green-600' : 'font-medium text-red-600'
                 }
               >
-                {m.tipo === 'entrada' ? '+' : '-'}
+                {TIPOS_POSITIVOS.includes(m.tipo) ? '+' : '-'}
                 {m.quantidade}
               </span>
             </div>

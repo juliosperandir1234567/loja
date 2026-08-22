@@ -1,6 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as api from './api'
 import type { ProdutoInsert, ProdutoUpdate } from './api'
+import { listarCatalogoProdutos } from './ean'
+
+export function useCatalogoProdutos(enabled: boolean) {
+  return useQuery({
+    queryKey: ['catalogo-produtos'],
+    queryFn: listarCatalogoProdutos,
+    enabled,
+    staleTime: Infinity,
+  })
+}
 
 export function useProdutos(busca?: string) {
   return useQuery({
@@ -20,7 +30,8 @@ export function useProduto(id: string | undefined) {
 export function useCriarProduto() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (produto: ProdutoInsert) => api.criarProduto(produto),
+    mutationFn: ({ produto, estoqueInicial }: { produto: ProdutoInsert; estoqueInicial: number }) =>
+      api.criarProdutoComEstoqueInicial(produto, estoqueInicial),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['produtos'] }),
   })
 }

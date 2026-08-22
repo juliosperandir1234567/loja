@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -7,23 +7,28 @@ import toast from 'react-hot-toast'
 import { AppShell } from '../../components/layout/AppShell'
 import { BarcodeScannerModal } from '../../components/BarcodeScannerModal'
 import { ConfirmDeleteModal } from '../../components/ConfirmDeleteModal'
-import { useProduto, useCriarProduto, useAtualizarProduto, useDeletarProduto } from './hooks'
+import { useProduto, useCriarProduto, useAtualizarProduto, useDeletarProduto, useCatalogoProdutos } from './hooks'
 import { buscarProdutoPorCodigoBarras, uploadFotoProduto, MARCAS } from './api'
+import { buscarProdutoExternoPorEAN } from './ean'
 
 const schema = z
   .object({
     nome: z.string().min(1, 'Informe o nome do produto'),
     marca: z.enum(['Natura', 'Boticário']),
     fragrancia_linha: z.string().optional(),
+    tipo: z.enum(['Masculino', 'Feminino', 'Unissex']).optional().or(z.literal('')),
+    tamanho: z.string().optional(),
     codigo_barras: z.string().optional(),
     preco_custo: z.coerce.number().min(0),
     preco_venda: z.coerce.number().min(0.01, 'Informe o preço de venda'),
     preco_promocional: z.coerce.number().min(0).optional().or(z.literal('')),
     estoque_minimo: z.coerce.number().int().min(0),
+    estoque_atual: z.coerce.number().int().min(0),
   })
   .transform((v) => ({
     ...v,
     preco_promocional: v.preco_promocional === '' ? null : (v.preco_promocional ?? null),
+    tipo: v.tipo === '' ? null : (v.tipo ?? null),
   }))
   .refine(
     (v) => v.preco_promocional === null || v.preco_promocional < v.preco_venda,
@@ -46,49 +51,116 @@ export function ProdutoFormPage() {
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
+  const [buscandoExterno, setBuscandoExterno] = useState(false)
+  const [mostrarSugestoes, setMostrarSugestoes] = useState(false)
+  const { data: catalogo } = useCatalogoProdutos(!isEdit)
 
   const {
     register,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     reset,
     formState: { errors },
   } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
+    defaultValues: { estoque_atual: 0 },
     values: produtoExistente
       ? {
           nome: produtoExistente.nome,
           marca: produtoExistente.marca,
           fragrancia_linha: produtoExistente.fragrancia_linha ?? '',
+          tipo: produtoExistente.tipo ?? '',
+          tamanho: produtoExistente.tamanho ?? '',
           codigo_barras: produtoExistente.codigo_barras ?? '',
           preco_custo: produtoExistente.preco_custo,
           preco_venda: produtoExistente.preco_venda,
           preco_promocional: produtoExistente.preco_promocional ?? '',
           estoque_minimo: produtoExistente.estoque_minimo,
+          estoque_atual: produtoExistente.estoque_atual,
         }
       : undefined,
   })
 
-  async function handleDetected(codigo: string) {
-    setScannerOpen(false)
-    setValue('codigo_barras', codigo)
+  const processarCodigoBarras = useCallback(
+    async (codigo: string) => {
+      if (isEdit || !codigo) return
 
-    if (!isEdit) {
       const existente = await buscarProdutoPorCodigoBarras(codigo)
-      if (existente) setDuplicado({ id: existente.id, nome: existente.nome })
+      if (existente) {
+        setDuplicado({ id: existente.id, nome: existente.nome })
+        return
+      }
+      setDuplicado(null)
+
+      setBuscandoExterno(true)
+      try {
+        const dados = await buscarProdutoExternoPorEAN(codigo)
+        if (!dados) return
+        if (dados.nome && !getValues('nome')) setValue('nome', dados.nome)
+        if (dados.marca) setValue('marca', dados.marca as 'Natura' | 'Boticário')
+        if (dados.fragranciaLinha && !getValues('fragrancia_linha')) {
+          setValue('fragrancia_linha', dados.fragranciaLinha)
+        }
+        if (dados.tipo && !getValues('tipo')) {
+          setValue('tipo', dados.tipo as 'Masculino' | 'Feminino' | 'Unissex')
+        }
+        if (dados.tamanho && !getValues('tamanho')) setValue('tamanho', dados.tamanho)
+        if (dados.nome || dados.marca || dados.fragranciaLinha || dados.tipo || dados.tamanho) {
+          toast.success('Dados do produto encontrados e preenchidos automaticamente')
+        }
+      } finally {
+        setBuscandoExterno(false)
+      }
+    },
+    [isEdit, setValue, getValues],
+  )
+
+  const handleDetected = useCallback(
+    (codigo: string) => {
+      setScannerOpen(false)
+      setValue('codigo_barras', codigo)
+      processarCodigoBarras(codigo)
+    },
+    [setValue, processarCodigoBarras],
+  )
+
+  const nomeAtual = watch('nome')
+  const marcaAtual = watch('marca')
+
+  const sugestoesFragrancia = useMemo(() => {
+    if (!catalogo || isEdit) return []
+    const nomeNorm = nomeAtual?.trim().toLowerCase()
+    if (!nomeNorm || nomeNorm.length < 2) return []
+
+    const doMesmoNome = catalogo.filter((c) => c.marca === marcaAtual && c.nome.toLowerCase() === nomeNorm)
+    const candidatos =
+      doMesmoNome.length > 0
+        ? doMesmoNome
+        : catalogo.filter((c) => c.marca === marcaAtual && c.nome.toLowerCase().includes(nomeNorm))
+
+    const vistos = new Set<string>()
+    const unicos: typeof candidatos = []
+    for (const c of candidatos) {
+      const chave = `${c.fragrancia_linha ?? ''}|${c.tipo ?? ''}|${c.tamanho ?? ''}`
+      if (vistos.has(chave)) continue
+      vistos.add(chave)
+      unicos.push(c)
     }
-  }
+    return unicos.slice(0, 30)
+  }, [catalogo, isEdit, nomeAtual, marcaAtual])
 
   async function onSubmit(values: FormValues) {
     setEnviando(true)
     try {
       let produtoId = id
+      const { estoque_atual: estoqueInicial, ...dadosProduto } = values
 
       if (isEdit) {
-        await atualizarProduto.mutateAsync({ id: id!, produto: values })
+        await atualizarProduto.mutateAsync({ id: id!, produto: dadosProduto })
       } else {
-        const criado = await criarProduto.mutateAsync(values)
+        const criado = await criarProduto.mutateAsync({ produto: dadosProduto, estoqueInicial })
         produtoId = criado.id
       }
 
@@ -163,12 +235,65 @@ export function ProdutoFormPage() {
 
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-neutral-700">Fragrância/linha</span>
-          <input
-            {...register('fragrancia_linha')}
-            placeholder="Ex: Kaiak, Essencial, Malbec"
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
-          />
+          <div className="relative">
+            <input
+              {...register('fragrancia_linha')}
+              placeholder="Ex: Kaiak, Essencial, Malbec"
+              onFocus={() => setMostrarSugestoes(true)}
+              onBlur={() => setTimeout(() => setMostrarSugestoes(false), 150)}
+              autoComplete="off"
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+            />
+            {mostrarSugestoes && sugestoesFragrancia.length > 0 && (
+              <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg">
+                {sugestoesFragrancia.map((s, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setValue('fragrancia_linha', s.fragrancia_linha ?? '')
+                        if (s.tipo) setValue('tipo', s.tipo as 'Masculino' | 'Feminino' | 'Unissex')
+                        if (s.tamanho) setValue('tamanho', s.tamanho)
+                        setMostrarSugestoes(false)
+                      }}
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-neutral-50"
+                    >
+                      {s.fragrancia_linha || '(sem variante)'}
+                      <span className="text-neutral-400">
+                        {s.tipo ? ` · ${s.tipo}` : ''}
+                        {s.tamanho ? ` · ${s.tamanho}` : ''}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </label>
+
+        <div className="flex gap-3">
+          <label className="block flex-1">
+            <span className="mb-1 block text-sm font-medium text-neutral-700">Tipo</span>
+            <select
+              {...register('tipo')}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+            >
+              <option value="">Não informado</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Feminino">Feminino</option>
+              <option value="Unissex">Unissex</option>
+            </select>
+          </label>
+          <label className="block flex-1">
+            <span className="mb-1 block text-sm font-medium text-neutral-700">Tamanho</span>
+            <input
+              {...register('tamanho')}
+              placeholder="Ex: 400ml, 75g"
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+            />
+          </label>
+        </div>
 
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-neutral-700">Código de barras</span>
@@ -177,6 +302,13 @@ export function ProdutoFormPage() {
               {...register('codigo_barras')}
               value={watch('codigo_barras') ?? ''}
               onChange={(e) => setValue('codigo_barras', e.target.value)}
+              onBlur={(e) => processarCodigoBarras(e.target.value.trim())}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  processarCodigoBarras(e.currentTarget.value.trim())
+                }
+              }}
               className="flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
             />
             <button
@@ -187,7 +319,28 @@ export function ProdutoFormPage() {
               Escanear
             </button>
           </div>
+          {buscandoExterno && (
+            <p className="mt-1 text-sm text-neutral-500">Buscando dados do produto...</p>
+          )}
         </label>
+
+        {!isEdit && !duplicado && (
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-neutral-700">Estoque atual</span>
+            <input
+              type="number"
+              min={0}
+              {...register('estoque_atual')}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+            />
+            <p className="mt-1 text-xs text-neutral-500">
+              Quantidade que já existe fisicamente na loja. Será registrada como estoque inicial.
+            </p>
+            {errors.estoque_atual && (
+              <p className="mt-1 text-sm text-red-600">{errors.estoque_atual.message}</p>
+            )}
+          </label>
+        )}
 
         <div className="flex gap-3">
           <label className="block flex-1">

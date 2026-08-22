@@ -29,8 +29,24 @@ export async function buscarProdutoPorCodigoBarras(codigoBarras: string) {
   return data
 }
 
-export async function criarProduto(produto: ProdutoInsert) {
-  const { data, error } = await supabase.from('produtos').insert(produto).select().single()
+export async function criarProdutoComEstoqueInicial(
+  produto: ProdutoInsert,
+  estoqueInicial: number,
+) {
+  const { data, error } = await supabase.rpc('criar_produto_com_estoque_inicial', {
+    p_nome: produto.nome,
+    p_marca: produto.marca,
+    p_preco_venda: produto.preco_venda,
+    p_estoque_inicial: estoqueInicial,
+    p_fragrancia_linha: produto.fragrancia_linha ?? null,
+    p_codigo_barras: produto.codigo_barras ?? null,
+    p_preco_custo: produto.preco_custo ?? 0,
+    p_preco_promocional: produto.preco_promocional ?? null,
+    p_estoque_minimo: produto.estoque_minimo,
+    p_foto_url: produto.foto_url ?? null,
+    p_tamanho: produto.tamanho ?? null,
+    p_tipo: produto.tipo ?? null,
+  })
   if (error) throw error
   return data
 }

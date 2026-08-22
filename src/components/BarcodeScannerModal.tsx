@@ -42,7 +42,7 @@ export function BarcodeScannerModal({ open, onClose, onDetected }: BarcodeScanne
     scannerRef.current = scanner
     let cancelled = false
 
-    scanner
+    const startPromise = scanner
       .start(
         { facingMode: 'environment' },
         {
@@ -76,10 +76,17 @@ export function BarcodeScannerModal({ open, onClose, onDetected }: BarcodeScanne
 
     return () => {
       cancelled = true
-      scanner
-        .stop()
-        .then(() => scanner.clear())
-        .catch(() => {})
+      // espera o start() terminar antes de parar — chamar stop() enquanto a
+      // câmera ainda está inicializando (ex: StrictMode remontando o efeito)
+      // faz a lib rejeitar com "scanner is not running" e quebra a próxima tentativa
+      startPromise.finally(() => {
+        if (scanner.isScanning) {
+          scanner
+            .stop()
+            .then(() => scanner.clear())
+            .catch(() => {})
+        }
+      })
       scannerRef.current = null
     }
   }, [open, onDetected])

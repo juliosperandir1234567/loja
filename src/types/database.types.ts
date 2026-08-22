@@ -1,12 +1,30 @@
 export type Role = 'admin' | 'vendedor'
 export type Marca = 'Natura' | 'Boticário'
-export type TipoMovimentacao = 'entrada' | 'saida_manual' | 'venda' | 'ajuste'
+export type TipoProduto = 'Masculino' | 'Feminino' | 'Unissex'
+export type TipoMovimentacao = 'entrada' | 'saida_manual' | 'venda' | 'ajuste' | 'estoque_inicial'
 export type FormaPagamento = 'a_vista' | 'cartao' | 'fiado'
 export type StatusVenda = 'pago' | 'pendente' | 'cancelada'
 
 export interface Database {
   public: {
     Tables: {
+      catalogo_produtos: {
+        Row: {
+          id: number
+          ean: string | null
+          marca: string
+          nome: string
+          fragrancia_linha: string | null
+          tipo: string | null
+          tamanho: string | null
+          categoria: string | null
+          confianca: string | null
+          criado_em: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       usuarios: {
         Row: {
           id: string
@@ -69,6 +87,8 @@ export interface Database {
           estoque_atual: number
           estoque_minimo: number
           foto_url: string | null
+          tamanho: string | null
+          tipo: TipoProduto | null
           ativo: boolean
           criado_em: string
           atualizado_em: string
@@ -83,6 +103,8 @@ export interface Database {
           preco_promocional?: number | null
           estoque_minimo?: number
           foto_url?: string | null
+          tamanho?: string | null
+          tipo?: TipoProduto | null
           ativo?: boolean
         }
         Update: Partial<{
@@ -95,6 +117,8 @@ export interface Database {
           preco_promocional: number | null
           estoque_minimo: number
           foto_url: string | null
+          tamanho: string | null
+          tipo: TipoProduto | null
           ativo: boolean
         }>
         Relationships: []
@@ -360,6 +384,23 @@ export interface Database {
       }
     }
     Functions: {
+      criar_produto_com_estoque_inicial: {
+        Args: {
+          p_nome: string
+          p_marca: Marca
+          p_preco_venda: number
+          p_estoque_inicial?: number
+          p_fragrancia_linha?: string | null
+          p_codigo_barras?: string | null
+          p_preco_custo?: number
+          p_preco_promocional?: number | null
+          p_estoque_minimo?: number
+          p_foto_url?: string | null
+          p_tamanho?: string | null
+          p_tipo?: TipoProduto | null
+        }
+        Returns: Database['public']['Tables']['produtos']['Row']
+      }
       registrar_movimentacao_estoque: {
         Args: {
           p_produto_id: string

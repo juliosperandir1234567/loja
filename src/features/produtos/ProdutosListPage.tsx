@@ -44,7 +44,9 @@ export function ProdutosListPage() {
                   <div>
                     <p className="font-medium text-neutral-900">{p.nome}</p>
                     <p className="text-sm text-neutral-500">
-                      {p.marca} {p.fragrancia_linha ? `· ${p.fragrancia_linha}` : ''}
+                      {p.marca}
+                      {p.fragrancia_linha ? ` · ${p.fragrancia_linha}` : ''}
+                      {p.tamanho ? ` · ${p.tamanho}` : ''}
                     </p>
                   </div>
                 </div>
