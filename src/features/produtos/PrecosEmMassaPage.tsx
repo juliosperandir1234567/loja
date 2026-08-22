@@ -160,10 +160,7 @@ export function PrecosEmMassaPage() {
       </div>
 
       {selecionados.size > 0 && (
-        <div className="fixed inset-x-0 bottom-0 flex flex-col gap-2 border-t border-neutral-200 bg-white p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-          <p className="text-sm text-neutral-600">
-            {selecionados.size} produto(s) selecionado(s) · deixe em branco o que não quiser alterar
-          </p>
+        <div className="fixed inset-x-0 bottom-0 flex flex-col gap-1.5 border-t border-neutral-200 bg-white p-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
           <div className="flex gap-2">
             <input
               type="number"
@@ -174,8 +171,8 @@ export function PrecosEmMassaPage() {
                 setNovoCusto(e.target.value)
                 setConfirmando(false)
               }}
-              placeholder="Preço de custo"
-              className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 py-2.5 text-sm focus:border-neutral-900 focus:outline-none"
+              placeholder="Custo"
+              className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 py-2 text-sm focus:border-neutral-900 focus:outline-none"
             />
             <input
               type="number"
@@ -186,8 +183,8 @@ export function PrecosEmMassaPage() {
                 setNovaRevista(e.target.value)
                 setConfirmando(false)
               }}
-              placeholder="Preço Revista"
-              className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 py-2.5 text-sm focus:border-neutral-900 focus:outline-none"
+              placeholder="Revista"
+              className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 py-2 text-sm focus:border-neutral-900 focus:outline-none"
             />
             <input
               type="number"
@@ -199,21 +196,24 @@ export function PrecosEmMassaPage() {
                 setConfirmando(false)
               }}
               placeholder="Promoção"
-              className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 py-2.5 text-sm focus:border-neutral-900 focus:outline-none"
+              className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 py-2 text-sm focus:border-neutral-900 focus:outline-none"
             />
+            <button
+              onClick={() => (confirmando ? aplicar() : setConfirmando(true))}
+              disabled={!podeAplicar || atualizarPrecoEmMassa.isPending}
+              className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-white disabled:opacity-50 ${
+                confirmando ? 'bg-red-600' : 'bg-[var(--cor-primaria)]'
+              }`}
+            >
+              {atualizarPrecoEmMassa.isPending ? '...' : confirmando ? 'Confirmar?' : 'Aplicar'}
+            </button>
           </div>
+          <p className="text-xs text-neutral-500">
+            {selecionados.size} selecionado(s) · em branco não altera
+          </p>
           {promocaoMaiorQueRevista && (
-            <p className="text-sm text-red-600">O preço de promoção deve ser menor que o Preço Revista</p>
+            <p className="text-xs text-red-600">A promoção deve ser menor que o preço Revista</p>
           )}
-          <button
-            onClick={() => (confirmando ? aplicar() : setConfirmando(true))}
-            disabled={!podeAplicar || atualizarPrecoEmMassa.isPending}
-            className={`rounded-lg px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 ${
-              confirmando ? 'bg-red-600' : 'bg-[var(--cor-primaria)]'
-            }`}
-          >
-            {atualizarPrecoEmMassa.isPending ? 'Aplicando...' : confirmando ? 'Confirmar?' : 'Aplicar'}
-          </button>
         </div>
       )}
     </AppShell>
