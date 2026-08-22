@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useProdutos } from '../features/produtos/hooks'
-import { buscarProdutoPorCodigoBarras, type Produto } from '../features/produtos/api'
+import { buscarProdutoPorCodigoBarras, nomeCompleto, type Produto } from '../features/produtos/api'
 import { BarcodeScannerModal } from './BarcodeScannerModal'
 import toast from 'react-hot-toast'
 
@@ -47,7 +47,7 @@ export function ProdutoPicker({ onSelect }: { onSelect: (produto: Produto) => vo
                 onClick={() => onSelect(p)}
                 className="w-full rounded-lg bg-white px-3 py-2 text-left ring-1 ring-neutral-200"
               >
-                <span className="font-medium">{p.nome}</span>{' '}
+                <span className="font-medium">{nomeCompleto(p)}</span>{' '}
                 <span className="text-sm text-neutral-500">
                   ({p.marca}) · {p.estoque_atual} em estoque
                 </span>

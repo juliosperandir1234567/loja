@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { useProdutos } from '../features/produtos/hooks'
-import { buscarProdutoPorCodigoBarras, precoEfetivo, MARCAS, type Produto } from '../features/produtos/api'
+import { buscarProdutoPorCodigoBarras, precoEfetivo, nomeCompleto, MARCAS, type Produto } from '../features/produtos/api'
 import { BarcodeScannerModal } from './BarcodeScannerModal'
 
 export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) => void }) {
@@ -83,7 +83,7 @@ export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) =
                   🧴
                 </div>
               )}
-              <p className="line-clamp-2 text-sm font-semibold text-neutral-900">{p.nome}</p>
+              <p className="line-clamp-2 text-sm font-semibold text-neutral-900">{nomeCompleto(p)}</p>
               <p className="text-base font-bold text-[var(--cor-primaria)]">
                 R$ {precoEfetivo(p).toFixed(2)}
               </p>

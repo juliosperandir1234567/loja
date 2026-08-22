@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AppShell } from '../../components/layout/AppShell'
 import { useProdutos } from '../produtos/hooks'
-import { precoEfetivo } from '../produtos/api'
+import { precoEfetivo, nomeCompleto } from '../produtos/api'
 
 export function EtiquetasPage() {
   const [busca, setBusca] = useState('')
@@ -42,7 +42,7 @@ export function EtiquetasPage() {
                       onChange={() => alternar(p.id)}
                       className="h-4 w-4"
                     />
-                    <span className="text-sm">{p.nome}</span>
+                    <span className="text-sm">{nomeCompleto(p)}</span>
                   </span>
                   <span className="text-sm text-neutral-500">
                     R$ {precoEfetivo(p).toFixed(2)}
@@ -69,7 +69,7 @@ export function EtiquetasPage() {
                 key={p.id}
                 className="flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-400 p-4 text-center"
               >
-                <p className="mb-2 text-sm font-medium text-neutral-900">{p.nome}</p>
+                <p className="mb-2 text-sm font-medium text-neutral-900">{nomeCompleto(p)}</p>
                 {p.preco_promocional ? (
                   <>
                     <p className="text-xs text-neutral-500 line-through">
