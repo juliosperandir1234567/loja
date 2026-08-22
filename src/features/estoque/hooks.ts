@@ -26,3 +26,14 @@ export function useRegistrarMovimentacao() {
     },
   })
 }
+
+export function useRegistrarAjuste() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.registrarAjusteEstoque,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['produtos'] })
+      queryClient.invalidateQueries({ queryKey: ['movimentacoes'] })
+    },
+  })
+}

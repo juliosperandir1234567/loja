@@ -18,6 +18,20 @@ export async function registrarMovimentacao(params: {
   return data
 }
 
+export async function registrarAjusteEstoque(params: {
+  produtoId: string
+  estoqueReal: number
+  motivo?: string
+}) {
+  const { data, error } = await supabase.rpc('registrar_ajuste_estoque', {
+    p_produto_id: params.produtoId,
+    p_estoque_real: params.estoqueReal,
+    p_motivo: params.motivo ?? null,
+  })
+  if (error) throw error
+  return data
+}
+
 export async function listarHistoricoProduto(produtoId: string) {
   const { data, error } = await supabase
     .from('movimentacoes_estoque')

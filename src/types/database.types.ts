@@ -133,6 +133,7 @@ export interface Database {
           fornecedor: string | null
           venda_id: string | null
           responsavel_id: string
+          positivo: boolean | null
           criado_em: string
         }
         Insert: {
@@ -143,6 +144,7 @@ export interface Database {
           fornecedor?: string | null
           venda_id?: string | null
           responsavel_id: string
+          positivo?: boolean | null
         }
         Update: Partial<{
           motivo: string | null
@@ -398,6 +400,14 @@ export interface Database {
           p_foto_url?: string | null
           p_tamanho?: string | null
           p_tipo?: TipoProduto | null
+        }
+        Returns: Database['public']['Tables']['produtos']['Row']
+      }
+      registrar_ajuste_estoque: {
+        Args: {
+          p_produto_id: string
+          p_estoque_real: number
+          p_motivo?: string | null
         }
         Returns: Database['public']['Tables']['produtos']['Row']
       }

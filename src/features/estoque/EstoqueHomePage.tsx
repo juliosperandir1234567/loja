@@ -21,6 +21,12 @@ export function EstoqueHomePage() {
           >
             Saída manual
           </Link>
+          <Link
+            to="/estoque/ajuste"
+            className="flex-1 rounded-lg border border-neutral-300 py-3 text-center text-sm font-medium"
+          >
+            Ajustar estoque
+          </Link>
         </div>
 
         <div>

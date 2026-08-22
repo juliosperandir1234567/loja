@@ -7,6 +7,7 @@ import { ProdutoFormPage } from './features/produtos/ProdutoFormPage'
 import { EstoqueHomePage } from './features/estoque/EstoqueHomePage'
 import { EntradaEstoquePage } from './features/estoque/EntradaEstoquePage'
 import { SaidaManualPage } from './features/estoque/SaidaManualPage'
+import { AjusteEstoquePage } from './features/estoque/AjusteEstoquePage'
 import { HistoricoProdutoPage } from './features/estoque/HistoricoProdutoPage'
 import { PdvPage } from './features/pdv/PdvPage'
 import { FiadosAbertosPage } from './features/fiado/FiadosAbertosPage'
@@ -80,6 +81,14 @@ export default function App() {
           element={
             <ProtectedRoute allow={['admin']}>
               <SaidaManualPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/estoque/ajuste"
+          element={
+            <ProtectedRoute allow={['admin']}>
+              <AjusteEstoquePage />
             </ProtectedRoute>
           }
         />

@@ -14,6 +14,11 @@ const TIPO_LABEL: Record<string, string> = {
 
 const TIPOS_POSITIVOS = ['entrada', 'estoque_inicial']
 
+function ehPositivo(m: { tipo: string; positivo?: boolean | null }) {
+  if (m.tipo === 'ajuste') return !!m.positivo
+  return TIPOS_POSITIVOS.includes(m.tipo)
+}
+
 export function HistoricoProdutoPage() {
   const { id } = useParams()
   const { data: produto } = useProduto(id)
@@ -28,12 +33,8 @@ export function HistoricoProdutoPage() {
           <div key={m.id} className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
             <div className="flex items-center justify-between">
               <span className="font-medium">{TIPO_LABEL[m.tipo] ?? m.tipo}</span>
-              <span
-                className={
-                  TIPOS_POSITIVOS.includes(m.tipo) ? 'font-medium text-green-600' : 'font-medium text-red-600'
-                }
-              >
-                {TIPOS_POSITIVOS.includes(m.tipo) ? '+' : '-'}
+              <span className={ehPositivo(m) ? 'font-medium text-green-600' : 'font-medium text-red-600'}>
+                {ehPositivo(m) ? '+' : '-'}
                 {m.quantidade}
               </span>
             </div>

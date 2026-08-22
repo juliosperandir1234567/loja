@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,7 +20,7 @@ const schema = z
     tamanho: z.string().optional(),
     codigo_barras: z.string().optional(),
     preco_custo: z.coerce.number().min(0),
-    preco_venda: z.coerce.number().min(0.01, 'Informe o preço de venda'),
+    preco_venda: z.coerce.number().min(0.01, 'Informe o preço revista'),
     preco_promocional: z.coerce.number().min(0).optional().or(z.literal('')),
     estoque_minimo: z.coerce.number().int().min(0),
     estoque_atual: z.coerce.number().int().min(0),
@@ -49,6 +49,17 @@ export function ProdutoFormPage() {
   const [scannerOpen, setScannerOpen] = useState(false)
   const [duplicado, setDuplicado] = useState<{ id: string; nome: string } | null>(null)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!fotoFile) {
+      setFotoPreview(null)
+      return
+    }
+    const url = URL.createObjectURL(fotoFile)
+    setFotoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [fotoFile])
   const [enviando, setEnviando] = useState(false)
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
   const [buscandoExterno, setBuscandoExterno] = useState(false)
@@ -353,7 +364,7 @@ export function ProdutoFormPage() {
             />
           </label>
           <label className="block flex-1">
-            <span className="mb-1 block text-sm font-medium text-neutral-700">Preço de venda</span>
+            <span className="mb-1 block text-sm font-medium text-neutral-700">Preço Revista</span>
             <input
               type="number"
               step="0.01"
@@ -391,15 +402,39 @@ export function ProdutoFormPage() {
           />
         </label>
 
-        <label className="block">
+        <div>
           <span className="mb-1 block text-sm font-medium text-neutral-700">Foto (opcional)</span>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setFotoFile(e.target.files?.[0] ?? null)}
-            className="w-full text-sm"
-          />
-        </label>
+          <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-neutral-300 py-6 text-sm text-neutral-600 hover:border-neutral-400">
+            {fotoPreview ? (
+              <img
+                src={fotoPreview}
+                alt="Pré-visualização da foto do produto"
+                className="h-20 w-20 rounded-lg object-cover"
+              />
+            ) : (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-7 w-7 text-neutral-400"
+              >
+                <path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+                <circle cx="12" cy="13" r="3.5" />
+              </svg>
+            )}
+            <span>{fotoFile ? fotoFile.name : 'Tirar foto ou escolher imagem'}</span>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => setFotoFile(e.target.files?.[0] ?? null)}
+              className="hidden"
+            />
+          </label>
+        </div>
 
         <button
           type="submit"
