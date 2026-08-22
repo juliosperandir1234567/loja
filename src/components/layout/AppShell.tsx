@@ -69,19 +69,19 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
 
       <main className="flex-1 pb-24">{children}</main>
 
-      <nav className="fixed inset-x-0 bottom-0 flex border-t border-neutral-200 bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 border-t border-neutral-200 bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
         {nav.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.to === '/'}
             className={({ isActive }) =>
-              `flex min-h-0 flex-1 flex-col items-center gap-0.5 py-2.5 text-center text-xs font-medium ${
+              `flex min-h-0 flex-1 flex-col items-center gap-0.5 py-2 text-center text-xs font-medium ${
                 isActive ? 'text-[var(--cor-primaria)]' : 'text-neutral-500'
               }`
             }
           >
-            <span className="text-2xl leading-none">{item.icone}</span>
+            <span className="text-lg leading-none">{item.icone}</span>
             <span className="font-semibold">{item.label}</span>
           </NavLink>
         ))}
