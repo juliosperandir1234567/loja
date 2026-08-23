@@ -403,6 +403,13 @@ export interface Database {
         }
         Returns: Database['public']['Tables']['produtos']['Row']
       }
+      cancelar_venda: {
+        Args: {
+          p_venda_id: string
+          p_motivo?: string | null
+        }
+        Returns: Database['public']['Tables']['vendas']['Row']
+      }
       registrar_ajuste_estoque: {
         Args: {
           p_produto_id: string

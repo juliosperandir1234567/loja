@@ -51,6 +51,12 @@ export async function finalizarVenda(params: FinalizarVendaParams): Promise<Vend
   return data
 }
 
+export async function cancelarVenda(vendaId: string) {
+  const { data, error } = await supabase.rpc('cancelar_venda', { p_venda_id: vendaId })
+  if (error) throw error
+  return data
+}
+
 export async function buscarVendaComItens(vendaId: string) {
   const { data: venda, error: vendaError } = await supabase
     .from('vendas')

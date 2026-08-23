@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
+import toast from 'react-hot-toast'
 import { AppShell } from '../../components/layout/AppShell'
+import { ConfirmDeleteModal } from '../../components/ConfirmDeleteModal'
+import { useCancelarVenda } from '../pdv/hooks'
 import { FiltroPeriodoBar } from './FiltroPeriodoBar'
 import { VendasPorDiaChart } from './VendasPorDiaChart'
 import { FormaPagamentoChart } from './FormaPagamentoChart'
@@ -45,6 +48,15 @@ export function DashboardPage() {
   const [filtroForma, setFiltroForma] = useState<FormaPagamento | 'todas'>('todas')
   const [filtroMarca, setFiltroMarca] = useState<FiltroMarca>('todos')
   const [mostrarDetalhesFornecedor, setMostrarDetalhesFornecedor] = useState(false)
+  const [vendaParaExcluir, setVendaParaExcluir] = useState<string | null>(null)
+  const cancelarVenda = useCancelarVenda()
+
+  async function handleExcluirVenda() {
+    if (!vendaParaExcluir) return
+    await cancelarVenda.mutateAsync(vendaParaExcluir)
+    toast.success('Venda excluída e estoque devolvido')
+    setVendaParaExcluir(null)
+  }
 
   const periodo: Periodo = useMemo(() => {
     if (tipoPeriodo === 'personalizado') {
@@ -444,6 +456,12 @@ export function DashboardPage() {
                         {v.status === 'pago' && (
                           <p className="text-xs font-medium text-green-600">Pago</p>
                         )}
+                        <button
+                          onClick={() => setVendaParaExcluir(v.id)}
+                          className="no-print mt-1 text-xs text-red-600 underline"
+                        >
+                          Excluir
+                        </button>
                       </div>
                     </li>
                   ))}
@@ -453,6 +471,15 @@ export function DashboardPage() {
           </>
         )}
       </div>
+
+      {vendaParaExcluir && (
+        <ConfirmDeleteModal
+          titulo="Excluir venda"
+          descricao="A venda é cancelada, some dos relatórios e o estoque dos itens é devolvido. Essa ação não pode ser desfeita."
+          onConfirm={handleExcluirVenda}
+          onClose={() => setVendaParaExcluir(null)}
+        />
+      )}
     </AppShell>
   )
 }
