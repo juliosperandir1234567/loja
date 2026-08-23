@@ -54,6 +54,27 @@ export function useItensFiadoPendenteTodos() {
   })
 }
 
+export function useEstoqueResumo(filtroMarca: FiltroMarca = 'todos') {
+  const query = useQuery({
+    queryKey: ['dashboard', 'estoque-resumo'],
+    queryFn: api.listarEstoqueParaResumo,
+  })
+
+  const produtos =
+    filtroMarca === 'todos'
+      ? (query.data ?? [])
+      : (query.data ?? []).filter((p) => p.marca === filtroMarca)
+
+  const totalUnidades = produtos.reduce((acc, p) => acc + p.estoque_atual, 0)
+  const valorCusto = produtos.reduce((acc, p) => acc + p.estoque_atual * Number(p.preco_custo), 0)
+  const valorVenda = produtos.reduce(
+    (acc, p) => acc + p.estoque_atual * Number(p.preco_promocional ?? p.preco_venda),
+    0,
+  )
+
+  return { isLoading: query.isLoading, totalUnidades, valorCusto, valorVenda }
+}
+
 export function useVendasAno(ano: number) {
   return useQuery({
     queryKey: ['dashboard', 'vendas-ano', ano],

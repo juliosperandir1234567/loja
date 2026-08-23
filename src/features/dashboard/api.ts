@@ -59,6 +59,15 @@ export async function listarItensFiadoPendenteTodos() {
   return data
 }
 
+export async function listarEstoqueParaResumo() {
+  const { data, error } = await supabase
+    .from('produtos')
+    .select('marca, estoque_atual, preco_custo, preco_venda, preco_promocional')
+    .eq('ativo', true)
+  if (error) throw error
+  return data
+}
+
 export async function listarItensAno(ano: number) {
   const desde = new Date(ano, 0, 1)
   const ate = new Date(ano, 11, 31, 23, 59, 59)

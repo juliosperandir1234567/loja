@@ -9,6 +9,7 @@ import {
   useDashboardKpis,
   usePagamentosFiadoPeriodo,
   useItensFiadoPendenteTodos,
+  useEstoqueResumo,
   LABEL_FORMA,
   type FiltroMarca,
 } from './hooks'
@@ -61,6 +62,7 @@ export function DashboardPage() {
   const { data: boletos } = useBoletos()
   const { data: pagamentosFiadoPeriodo } = usePagamentosFiadoPeriodo(periodo)
   const { data: itensFiadoPendenteTodos } = useItensFiadoPendenteTodos()
+  const estoqueResumo = useEstoqueResumo(filtroMarca)
 
   const boletosFiltrados =
     filtroMarca === 'todos'
@@ -224,6 +226,21 @@ export function DashboardPage() {
               <StatCard label="Itens vendidos" valor={String(kpis.itensVendidos)} />
               <StatCard label="Lucro bruto estimado" valor={`R$ ${kpis.lucroBrutoEstimado.toFixed(2)}`} />
               <StatCard label="Maior venda" valor={`R$ ${kpis.maiorVenda.toFixed(2)}`} />
+            </div>
+
+            <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
+              <h2 className="mb-3 text-sm font-medium text-neutral-700">Estoque atual</h2>
+              <div className="grid grid-cols-3 gap-3">
+                <StatCard label="Unidades" valor={String(estoqueResumo.totalUnidades)} />
+                <StatCard
+                  label="Valor (custo)"
+                  valor={`R$ ${estoqueResumo.valorCusto.toFixed(2)}`}
+                />
+                <StatCard
+                  label="Valor (venda)"
+                  valor={`R$ ${estoqueResumo.valorVenda.toFixed(2)}`}
+                />
+              </div>
             </div>
 
             <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
