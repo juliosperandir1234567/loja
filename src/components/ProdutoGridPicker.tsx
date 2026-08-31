@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { useProdutos } from '../features/produtos/hooks'
 import { buscarProdutoPorCodigoBarras, precoEfetivo, nomeCompleto, MARCAS, type Produto } from '../features/produtos/api'
 import { BarcodeScannerModal } from './BarcodeScannerModal'
+import { tocarBipSucesso, tocarBipErro } from '../utils/som'
 
 export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) => void }) {
   const [busca, setBusca] = useState('')
@@ -18,8 +19,10 @@ export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) =
     setScannerOpen(false)
     const produto = await buscarProdutoPorCodigoBarras(codigo)
     if (produto) {
+      tocarBipSucesso()
       onSelect(produto)
     } else {
+      tocarBipErro()
       toast.error('Nenhum produto encontrado com esse código')
     }
   }

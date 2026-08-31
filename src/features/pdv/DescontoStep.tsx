@@ -54,25 +54,39 @@ export function DescontoStep({
           {itens.reduce((acc, i) => acc + i.quantidade, 0)} item(ns) nesta venda
         </p>
         <ul className="flex flex-col divide-y divide-neutral-100">
-          {itens.map((i) => (
-            <li key={i.produto.id} className="flex flex-col gap-1.5 py-2 text-sm first:pt-0 last:pb-0">
-              <div className="flex items-center justify-between gap-2">
-                <span className="flex min-w-0 items-center gap-2 text-neutral-700">
-                  {itens.length >= 2 && (
+          {itens.map((i) => {
+            const noKit = itensDoKit.has(i.produto.id)
+            return (
+            <li
+              key={i.produto.id}
+              className={`-mx-3 flex flex-col gap-1.5 px-3 py-2 text-sm first:pt-0 last:pb-0 ${
+                noKit ? 'bg-amber-50' : ''
+              }`}
+            >
+              {itens.length >= 2 ? (
+                <label className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-2 text-neutral-700">
                     <input
                       type="checkbox"
-                      checked={itensDoKit.has(i.produto.id)}
+                      checked={noKit}
                       onChange={() => alternarItemKit(i.produto.id)}
-                      className="h-4 w-4 shrink-0"
+                      className="h-5 w-5 shrink-0"
                       aria-label={`Incluir ${nomeCompleto(i.produto)} no kit`}
                     />
-                  )}
-                  <span className="truncate">{nomeCompleto(i.produto)}</span>
-                </span>
-                <span className="shrink-0 font-medium text-neutral-900">
-                  R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
-                </span>
-              </div>
+                    <span className="truncate">{nomeCompleto(i.produto)}</span>
+                  </span>
+                  <span className="shrink-0 font-medium text-neutral-900">
+                    R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
+                  </span>
+                </label>
+              ) : (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-neutral-700">{nomeCompleto(i.produto)}</span>
+                  <span className="shrink-0 font-medium text-neutral-900">
+                    R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center justify-between gap-2 pl-6">
                 <div className="flex items-center gap-1.5">
                   <button
@@ -102,7 +116,8 @@ export function DescontoStep({
                 </button>
               </div>
             </li>
-          ))}
+            )
+          })}
         </ul>
       </div>
 
@@ -156,22 +171,43 @@ export function DescontoStep({
 
       <div className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
         <div className="flex flex-col gap-1 text-sm">
-          <div className="flex justify-between text-neutral-600">
-            <span>Subtotal</span>
-            <span>R$ {total.toFixed(2)}</span>
-          </div>
-          {numeroDesconto > 0 && (
-            <div className="flex justify-between text-neutral-600">
-              <span>Desconto total ({numeroDescontoGeral > 0 && numeroDescontoKit > 0 ? 'geral + kit' : numeroDescontoKit > 0 ? 'kit' : 'geral'})</span>
-              <span>− R$ {numeroDesconto.toFixed(2)}</span>
-            </div>
+          {itensDoKit.size >= 2 ? (
+            <>
+              <div className="flex justify-between text-neutral-600">
+                <span>Valor final do kit</span>
+                <span>R$ {valorFinalKit.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-neutral-600">
+                <span>Outros produtos</span>
+                <span>R$ {(total - subtotalKit).toFixed(2)}</span>
+              </div>
+              {numeroDescontoGeral > 0 && (
+                <div className="flex justify-between text-neutral-600">
+                  <span>Desconto geral</span>
+                  <span>− R$ {numeroDescontoGeral.toFixed(2)}</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex justify-between text-neutral-600">
+                <span>Subtotal</span>
+                <span>R$ {total.toFixed(2)}</span>
+              </div>
+              {numeroDesconto > 0 && (
+                <div className="flex justify-between text-neutral-600">
+                  <span>Desconto</span>
+                  <span>− R$ {numeroDesconto.toFixed(2)}</span>
+                </div>
+              )}
+            </>
           )}
           <div className="flex justify-between text-lg font-bold text-neutral-900">
             <span>Total</span>
             <span>R$ {totalComDesconto.toFixed(2)}</span>
           </div>
         </div>
-        {descontoInvalido && numeroDesconto > total && (
+        {numeroDesconto > total && (
           <p className="mt-2 text-sm text-red-600">Desconto não pode ser maior que o total</p>
         )}
       </div>
