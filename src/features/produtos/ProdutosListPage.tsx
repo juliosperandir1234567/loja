@@ -157,12 +157,11 @@ export function ProdutosListPage() {
                     <div className="h-12 w-12 rounded-lg bg-neutral-100" />
                   )}
                   <div>
-                    <p className="font-medium text-neutral-900">{p.nome}</p>
+                    <p className="font-medium text-neutral-900">
+                      {p.marca} {p.nome}
+                    </p>
                     <p className="text-sm text-neutral-500">
-                      {p.marca}
-                      {p.fragrancia_linha ? ` · ${p.fragrancia_linha}` : ''}
-                      {p.formato ? ` · ${p.formato}` : ''}
-                      {p.tamanho ? ` · ${p.tamanho}` : ''}
+                      {[p.fragrancia_linha, p.formato, p.tamanho, p.tipo].filter(Boolean).join(' · ')}
                     </p>
                   </div>
                 </div>
