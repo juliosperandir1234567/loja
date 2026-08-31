@@ -124,7 +124,12 @@ export function precoEfetivo(produto: Pick<Produto, 'preco_venda' | 'preco_promo
   return produto.preco_promocional ?? produto.preco_venda
 }
 
-export function nomeCompleto(produto: Pick<Produto, 'nome' | 'fragrancia_linha' | 'formato'>) {
+export function nomeCompleto(
+  produto: Pick<Produto, 'nome' | 'fragrancia_linha' | 'formato' | 'tipo'>,
+) {
   const base = produto.fragrancia_linha ? `${produto.nome} - ${produto.fragrancia_linha}` : produto.nome
-  return produto.formato ? `${base} (${produto.formato})` : base
+  // Masculino/Feminino da mesma fragrancia+formato ficam com nome identico
+  // sem isso — precisa aparecer pra dar pra diferenciar no carrinho/kit
+  const detalhes = [produto.formato, produto.tipo !== 'Unissex' ? produto.tipo : null].filter(Boolean)
+  return detalhes.length > 0 ? `${base} (${detalhes.join(', ')})` : base
 }
