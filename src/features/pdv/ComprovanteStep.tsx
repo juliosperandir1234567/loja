@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import type { Venda } from './api'
-import type { CarrinhoItem } from './PdvPage'
+import type { CarrinhoItem, KitInfo } from './PdvPage'
 import type { Cliente } from '../clientes/api'
 import { abrirWhatsApp } from '../../utils/whatsapp'
 import { buscarSaldoCliente } from '../fiado/api'
@@ -19,12 +19,14 @@ const FORMA_LABEL: Record<string, string> = {
 export function ComprovanteStep({
   venda,
   itens,
+  kitInfo,
   cliente,
   assinaturaDataUrl,
   onNovaVenda,
 }: {
   venda: Venda
   itens: CarrinhoItem[]
+  kitInfo: KitInfo | null
   cliente: Cliente | null
   assinaturaDataUrl: string | null
   onNovaVenda: () => void
@@ -39,6 +41,9 @@ export function ComprovanteStep({
   const restanteDestaCompra = Number(venda.valor_total) - entrada
   const totalGeralDevido = saldoAnterior + restanteDestaCompra
   const nomeLoja = config?.nome_loja ?? 'Espaço Sperandir'
+  const kitIds = new Set(kitInfo?.produtoIds ?? [])
+  const itensDoKit = itens.filter((i) => kitIds.has(i.produto.id))
+  const itensFora = itens.filter((i) => !kitIds.has(i.produto.id))
 
   // calcula uma vez, ao entrar na tela — o mesmo valor é usado na tela/impressão,
   // no WhatsApp e no PDF, pra nunca ficar diferente entre eles
@@ -62,7 +67,7 @@ export function ComprovanteStep({
     setGerandoPdf(true)
     try {
       const cfg = config ?? (await buscarConfiguracoes())
-      await gerarPdfFiado({ config: cfg, cliente, venda, itens, saldoAnterior, assinaturaDataUrl })
+      await gerarPdfFiado({ config: cfg, cliente, venda, itens, kitInfo, saldoAnterior, assinaturaDataUrl })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao gerar PDF')
     } finally {
@@ -73,9 +78,21 @@ export function ComprovanteStep({
   // mesmo conteúdo mostrado na tela/PDF (itens, desconto, entrada, dados do
   // cliente e saldo em aberto quando a prazo)
   function montarMensagem() {
-    const linhas = itens
-      .map((i) => `${i.quantidade}x ${nomeCompleto(i.produto)} — R$ ${(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}`)
-      .join('\n')
+    let linhas: string
+    if (kitInfo) {
+      const linhasKit = itensDoKit
+        .map((i) => `${i.quantidade}x ${nomeCompleto(i.produto)}`)
+        .join('\n')
+      const linhasFora = itensFora
+        .map((i) => `${i.quantidade}x ${nomeCompleto(i.produto)} — R$ ${(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}`)
+        .join('\n')
+      linhas = `*Kit (${itensDoKit.length} itens) — R$ ${kitInfo.valorFinal.toFixed(2)}*\n${linhasKit}`
+      if (linhasFora) linhas += `\n\n${linhasFora}`
+    } else {
+      linhas = itens
+        .map((i) => `${i.quantidade}x ${nomeCompleto(i.produto)} — R$ ${(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}`)
+        .join('\n')
+    }
 
     let msg = `*${nomeLoja}*\nComprovante de venda\n\n${linhas}`
 
@@ -136,16 +153,49 @@ export function ComprovanteStep({
           </div>
         )}
 
-        <ul className="mb-3 flex flex-col gap-1 border-b border-dashed border-neutral-200 pb-3">
-          {itens.map((i) => (
-            <li key={i.produto.id} className="flex justify-between text-sm">
-              <span>
-                {i.quantidade}x {nomeCompleto(i.produto)}
-              </span>
-              <span>R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}</span>
-            </li>
-          ))}
-        </ul>
+        {kitInfo ? (
+          <div className="mb-3 flex flex-col gap-2 border-b border-dashed border-neutral-200 pb-3">
+            <div className="rounded-lg bg-amber-50 p-2 ring-1 ring-amber-200">
+              <p className="mb-1 text-xs font-semibold text-amber-800">
+                Kit ({itensDoKit.length} itens)
+              </p>
+              <ul className="flex flex-col gap-0.5">
+                {itensDoKit.map((i) => (
+                  <li key={i.produto.id} className="text-sm text-neutral-700">
+                    {i.quantidade}x {nomeCompleto(i.produto)}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 flex justify-between text-sm font-semibold text-amber-900">
+                <span>Valor do kit</span>
+                <span>R$ {kitInfo.valorFinal.toFixed(2)}</span>
+              </p>
+            </div>
+            {itensFora.length > 0 && (
+              <ul className="flex flex-col gap-1">
+                {itensFora.map((i) => (
+                  <li key={i.produto.id} className="flex justify-between text-sm">
+                    <span>
+                      {i.quantidade}x {nomeCompleto(i.produto)}
+                    </span>
+                    <span>R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <ul className="mb-3 flex flex-col gap-1 border-b border-dashed border-neutral-200 pb-3">
+            {itens.map((i) => (
+              <li key={i.produto.id} className="flex justify-between text-sm">
+                <span>
+                  {i.quantidade}x {nomeCompleto(i.produto)}
+                </span>
+                <span>R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {Number(venda.desconto) > 0 && (
           <p className="flex justify-between text-sm text-neutral-500">

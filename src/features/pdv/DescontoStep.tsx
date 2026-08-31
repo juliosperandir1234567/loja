@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { precoEfetivo, nomeCompleto } from '../produtos/api'
-import type { CarrinhoItem } from './PdvPage'
+import type { CarrinhoItem, KitInfo } from './PdvPage'
 
 export function DescontoStep({
   itens,
@@ -12,7 +12,7 @@ export function DescontoStep({
   itens: CarrinhoItem[]
   total: number
   onAjustarQuantidade: (produtoId: string, quantidade: number) => void
-  onAvancar: (desconto: number) => void
+  onAvancar: (desconto: number, kit: KitInfo | null) => void
   onVoltar: () => void
 }) {
   const [descontoGeral, setDescontoGeral] = useState('')
@@ -219,7 +219,14 @@ export function DescontoStep({
           Voltar
         </button>
         <button
-          onClick={() => onAvancar(numeroDesconto)}
+          onClick={() =>
+            onAvancar(
+              numeroDesconto,
+              itensDoKitLista.length >= 2
+                ? { produtoIds: itensDoKitLista.map((i) => i.produto.id), valorFinal: valorFinalKit }
+                : null,
+            )
+          }
           disabled={descontoInvalido}
           className="flex-1 rounded-lg bg-[var(--cor-primaria)] py-3 text-sm font-medium text-white disabled:opacity-50"
         >

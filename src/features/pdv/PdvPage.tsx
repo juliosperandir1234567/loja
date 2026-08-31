@@ -18,6 +18,11 @@ export interface CarrinhoItem {
   quantidade: number
 }
 
+export interface KitInfo {
+  produtoIds: string[]
+  valorFinal: number
+}
+
 type Etapa = 'carrinho' | 'desconto' | 'pagamento' | 'assinatura' | 'comprovante'
 
 interface PagamentoEscolhido {
@@ -32,6 +37,7 @@ export function PdvPage() {
   const [etapa, setEtapa] = useState<Etapa>('carrinho')
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([])
   const [desconto, setDesconto] = useState(0)
+  const [kitInfo, setKitInfo] = useState<KitInfo | null>(null)
   const [pagamento, setPagamento] = useState<PagamentoEscolhido | null>(null)
   const [vendaFinalizada, setVendaFinalizada] = useState<Venda | null>(null)
   const [assinaturaDataUrl, setAssinaturaDataUrl] = useState<string | null>(null)
@@ -84,6 +90,7 @@ export function PdvPage() {
   function resetar() {
     setCarrinho([])
     setDesconto(0)
+    setKitInfo(null)
     setPagamento(null)
     setVendaFinalizada(null)
     setAssinaturaDataUrl(null)
@@ -118,8 +125,9 @@ export function PdvPage() {
           total={total}
           onAjustarQuantidade={ajustarQuantidade}
           onVoltar={() => setEtapa('carrinho')}
-          onAvancar={(d) => {
+          onAvancar={(d, kit) => {
             setDesconto(d)
+            setKitInfo(kit)
             setEtapa('pagamento')
           }}
         />
@@ -134,6 +142,7 @@ export function PdvPage() {
           itens={carrinho}
           total={total}
           desconto={desconto}
+          kitInfo={kitInfo}
           onVoltar={() => setEtapa('desconto')}
           onConfirmar={(p) => {
             setPagamento(p)
@@ -162,6 +171,7 @@ export function PdvPage() {
         <ComprovanteStep
           venda={vendaFinalizada}
           itens={carrinho}
+          kitInfo={kitInfo}
           cliente={pagamento?.cliente ?? null}
           assinaturaDataUrl={assinaturaDataUrl}
           onNovaVenda={resetar}

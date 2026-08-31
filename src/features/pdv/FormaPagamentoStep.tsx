@@ -3,7 +3,7 @@ import { ClientePicker } from '../../components/ClientePicker'
 import { precoEfetivo, nomeCompleto } from '../produtos/api'
 import type { Cliente } from '../clientes/api'
 import type { FormaPagamento } from '../../types/database.types'
-import type { CarrinhoItem } from './PdvPage'
+import type { CarrinhoItem, KitInfo } from './PdvPage'
 
 const OPCOES: { valor: FormaPagamento; label: string }[] = [
   { valor: 'a_vista', label: 'À vista (dinheiro/PIX)' },
@@ -15,12 +15,14 @@ export function FormaPagamentoStep({
   itens,
   total,
   desconto,
+  kitInfo,
   onConfirmar,
   onVoltar,
 }: {
   itens: CarrinhoItem[]
   total: number
   desconto: number
+  kitInfo: KitInfo | null
   onConfirmar: (params: {
     formaPagamento: FormaPagamento
     cliente: Cliente | null
@@ -37,6 +39,9 @@ export function FormaPagamentoStep({
 
   const totalComDesconto = Math.max(0, total - desconto)
   const numeroEntrada = Math.max(0, Number(valorEntrada) || 0)
+  const kitIds = new Set(kitInfo?.produtoIds ?? [])
+  const itensDoKit = itens.filter((i) => kitIds.has(i.produto.id))
+  const itensFora = itens.filter((i) => !kitIds.has(i.produto.id))
 
   function podeContinuar() {
     if (!forma) return false
@@ -53,18 +58,55 @@ export function FormaPagamentoStep({
         <p className="mb-2 text-sm font-bold text-neutral-700">
           {itens.reduce((acc, i) => acc + i.quantidade, 0)} item(ns) nesta venda
         </p>
-        <ul className="flex flex-col gap-1">
-          {itens.map((i) => (
-            <li key={i.produto.id} className="flex justify-between text-sm">
-              <span className="truncate text-neutral-700">
-                {i.quantidade}x {nomeCompleto(i.produto)}
-              </span>
-              <span className="shrink-0 font-medium text-neutral-900">
-                R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {kitInfo ? (
+          <div className="flex flex-col gap-2">
+            <div className="rounded-lg bg-amber-50 p-2 ring-1 ring-amber-200">
+              <p className="mb-1 text-xs font-semibold text-amber-800">
+                Kit ({itensDoKit.length} itens com desconto)
+              </p>
+              <ul className="flex flex-col gap-0.5">
+                {itensDoKit.map((i) => (
+                  <li key={i.produto.id} className="flex justify-between text-sm text-neutral-700">
+                    <span className="truncate">
+                      {i.quantidade}x {nomeCompleto(i.produto)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 flex justify-between text-sm font-semibold text-amber-900">
+                <span>Valor do kit</span>
+                <span>R$ {kitInfo.valorFinal.toFixed(2)}</span>
+              </p>
+            </div>
+            {itensFora.length > 0 && (
+              <ul className="flex flex-col gap-1">
+                {itensFora.map((i) => (
+                  <li key={i.produto.id} className="flex justify-between text-sm">
+                    <span className="truncate text-neutral-700">
+                      {i.quantidade}x {nomeCompleto(i.produto)}
+                    </span>
+                    <span className="shrink-0 font-medium text-neutral-900">
+                      R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {itens.map((i) => (
+              <li key={i.produto.id} className="flex justify-between text-sm">
+                <span className="truncate text-neutral-700">
+                  {i.quantidade}x {nomeCompleto(i.produto)}
+                </span>
+                <span className="shrink-0 font-medium text-neutral-900">
+                  R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div>

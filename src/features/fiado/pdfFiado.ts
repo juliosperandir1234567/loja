@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { format } from 'date-fns'
 import type { Cliente } from '../clientes/api'
-import type { CarrinhoItem } from '../pdv/PdvPage'
+import type { CarrinhoItem, KitInfo } from '../pdv/PdvPage'
 import type { Venda } from '../pdv/api'
 import { precoEfetivo, nomeCompleto } from '../produtos/api'
 
@@ -33,10 +33,12 @@ export async function gerarPdfFiado(params: {
   cliente: Cliente
   venda: Venda
   itens: CarrinhoItem[]
+  kitInfo: KitInfo | null
   saldoAnterior: number
   assinaturaDataUrl: string
 }) {
-  const { config, cliente, venda, itens, saldoAnterior, assinaturaDataUrl } = params
+  const { config, cliente, venda, itens, kitInfo, saldoAnterior, assinaturaDataUrl } = params
+  const kitIds = new Set(kitInfo?.produtoIds ?? [])
   const valorAtual = Number(venda.valor_total)
   const entrada = Number(venda.valor_entrada)
   const restanteDestaCompra = valorAtual - entrada
@@ -71,7 +73,7 @@ export async function gerarPdfFiado(params: {
     startY: 68,
     head: [['Produto', 'Qtd', 'Preço unit.', 'Subtotal']],
     body: itens.map((i) => [
-      nomeCompleto(i.produto),
+      kitIds.has(i.produto.id) ? `${nomeCompleto(i.produto)} (kit)` : nomeCompleto(i.produto),
       String(i.quantidade),
       `R$ ${precoEfetivo(i.produto).toFixed(2)}`,
       `R$ ${(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}`,
@@ -86,6 +88,10 @@ export async function gerarPdfFiado(params: {
   if (venda.desconto && Number(venda.desconto) > 0) {
     y += 6
     doc.text(`Desconto: R$ ${Number(venda.desconto).toFixed(2)}`, 14, y)
+  }
+  if (kitInfo) {
+    y += 6
+    doc.text(`Kit (${kitInfo.produtoIds.length} itens marcados acima): R$ ${kitInfo.valorFinal.toFixed(2)}`, 14, y)
   }
   if (entrada > 0) {
     y += 6
