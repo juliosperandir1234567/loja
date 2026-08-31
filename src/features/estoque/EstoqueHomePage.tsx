@@ -13,6 +13,8 @@ function StatCard({ label, valor }: { label: string; valor: string }) {
 
 export function EstoqueHomePage() {
   const { isLoading, totalUnidades, valorCusto, valorVenda } = useEstoqueResumo()
+  const lucroPotencial = valorVenda - valorCusto
+  const margem = valorVenda > 0 ? (lucroPotencial / valorVenda) * 100 : 0
 
   return (
     <AppShell title="Estoque">
@@ -50,6 +52,14 @@ export function EstoqueHomePage() {
             </div>
           )}
         </div>
+
+        {!isLoading && (
+          <div className="rounded-lg bg-green-50 p-3 ring-1 ring-green-200">
+            <p className="text-xs font-medium text-green-800">Lucro potencial (se vender tudo)</p>
+            <p className="text-lg font-semibold text-green-800">R$ {lucroPotencial.toFixed(2)}</p>
+            <p className="text-xs text-green-700">Margem de {margem.toFixed(0)}% sobre o valor de venda</p>
+          </div>
+        )}
 
         <Link
           to="/produtos"
