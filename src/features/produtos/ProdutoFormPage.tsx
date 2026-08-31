@@ -22,7 +22,7 @@ const schema = z
     codigo_barras: z.string().optional(),
     preco_custo: z.coerce.number().min(0),
     preco_venda: z.coerce.number().min(0.01, 'Informe o preço revista'),
-    preco_promocional: z.coerce.number().min(0).optional().or(z.literal('')),
+    preco_promocional: z.union([z.literal(''), z.coerce.number().min(0)]).optional(),
     estoque_minimo: z.coerce.number().int().min(0),
     estoque_atual: z.coerce.number().int().min(0),
   })
