@@ -2,6 +2,101 @@ import { useEffect, useState } from 'react'
 import { precoEfetivo, nomeCompleto } from '../produtos/api'
 import type { CarrinhoItem } from './PdvPage'
 
+function SelecaoKitOverlay({
+  itens,
+  selecaoInicial,
+  onConfirmar,
+  onCancelar,
+}: {
+  itens: CarrinhoItem[]
+  selecaoInicial: Set<string>
+  onConfirmar: (selecao: Set<string>) => void
+  onCancelar: () => void
+}) {
+  const [selecao, setSelecao] = useState(new Set(selecaoInicial))
+
+  function alternar(produtoId: string) {
+    setSelecao((atual) => {
+      const novo = new Set(atual)
+      if (novo.has(produtoId)) novo.delete(produtoId)
+      else novo.add(produtoId)
+      return novo
+    })
+  }
+
+  const subtotal = itens
+    .filter((i) => selecao.has(i.produto.id))
+    .reduce((acc, i) => acc + i.quantidade * precoEfetivo(i.produto), 0)
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-white">
+      <div className="flex items-center justify-between border-b border-neutral-200 p-4">
+        <h2 className="text-lg font-bold text-neutral-900">Selecionar itens do kit</h2>
+        <button onClick={onCancelar} className="text-sm font-medium text-neutral-500">
+          Cancelar
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        <ul className="flex flex-col divide-y divide-neutral-100">
+          {itens.map((i) => {
+            const marcado = selecao.has(i.produto.id)
+            return (
+              <li key={i.produto.id}>
+                <button
+                  type="button"
+                  onClick={() => alternar(i.produto.id)}
+                  className={`flex w-full items-center justify-between gap-3 py-3.5 text-left ${
+                    marcado ? 'bg-amber-50' : ''
+                  }`}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-base font-bold text-white ${
+                        marcado
+                          ? 'border-[var(--cor-primaria)] bg-[var(--cor-primaria)]'
+                          : 'border-neutral-300 bg-white'
+                      }`}
+                    >
+                      {marcado && '✓'}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-neutral-900">
+                        {nomeCompleto(i.produto)}
+                      </span>
+                      <span className="text-xs text-neutral-400">{i.quantidade}x</span>
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-medium text-neutral-900">
+                    R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
+                  </span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+
+      <div className="border-t border-neutral-200 p-4">
+        <div className="mb-3 flex items-center justify-between text-sm">
+          <span className="text-neutral-600">
+            {selecao.size} item{selecao.size === 1 ? '' : 's'} selecionado
+            {selecao.size === 1 ? '' : 's'}
+          </span>
+          <span className="text-base font-bold text-neutral-900">R$ {subtotal.toFixed(2)}</span>
+        </div>
+        <button
+          onClick={() => onConfirmar(selecao)}
+          disabled={selecao.size < 2}
+          className="w-full rounded-lg bg-[var(--cor-primaria)] py-3 text-sm font-medium text-white disabled:opacity-50"
+        >
+          {selecao.size < 2 ? 'Selecione ao menos 2 itens' : `Confirmar ${selecao.size} itens do kit`}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function DescontoStep({
   itens,
   total,
@@ -18,6 +113,7 @@ export function DescontoStep({
   const [descontoGeral, setDescontoGeral] = useState('')
   const [itensDoKit, setItensDoKit] = useState<Set<string>>(new Set())
   const [descontoKit, setDescontoKit] = useState('')
+  const [selecionandoKit, setSelecionandoKit] = useState(false)
 
   useEffect(() => {
     const idsValidos = new Set(itens.map((i) => i.produto.id))
@@ -27,26 +123,11 @@ export function DescontoStep({
     })
   }, [itens])
 
-  function alternarItemKit(produtoId: string) {
-    setItensDoKit((atual) => {
-      const novo = new Set(atual)
-      if (novo.has(produtoId)) novo.delete(produtoId)
-      else novo.add(produtoId)
-      return novo
-    })
-  }
-
-  const subtotalKit = itens
-    .filter((i) => itensDoKit.has(i.produto.id))
-    .reduce((acc, i) => acc + i.quantidade * precoEfetivo(i.produto), 0)
-
-  // diagnostico: dois itens do carrinho nunca deveriam compartilhar o mesmo id
-  const idsVistos = new Set<string>()
-  const idsDuplicados = new Set<string>()
-  for (const i of itens) {
-    if (idsVistos.has(i.produto.id)) idsDuplicados.add(i.produto.id)
-    idsVistos.add(i.produto.id)
-  }
+  const itensDoKitOrdenados = itens.filter((i) => itensDoKit.has(i.produto.id))
+  const subtotalKit = itensDoKitOrdenados.reduce(
+    (acc, i) => acc + i.quantidade * precoEfetivo(i.produto),
+    0,
+  )
 
   // aceita "," ou "." como separador decimal (teclado numerico do celular
   // costuma inserir virgula, que <input type="number"> rejeita silenciosamente)
@@ -60,70 +141,20 @@ export function DescontoStep({
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      {idsDuplicados.size > 0 && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800 ring-1 ring-red-200">
-          Aviso técnico: {idsDuplicados.size} produto(s) aparecem repetidos no carrinho (mesmo id
-          #{[...idsDuplicados].map((id) => id.slice(-4)).join(', #')}). Isso pode causar
-          inconsistência no kit. Tente remover e adicionar esse item de novo.
-        </div>
-      )}
       <div className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
         <p className="mb-2 text-sm font-bold text-neutral-700">
           {itens.reduce((acc, i) => acc + i.quantidade, 0)} item(ns) nesta venda
         </p>
         <ul className="flex flex-col divide-y divide-neutral-100">
-          {itens.map((i) => {
-            const noKit = itensDoKit.has(i.produto.id)
-            return (
-            <li
-              key={i.produto.id}
-              className={`-mx-3 flex flex-col gap-1.5 px-3 py-2 text-sm first:pt-0 last:pb-0 ${
-                noKit ? 'bg-amber-50' : ''
-              }`}
-            >
-              {itens.length >= 2 ? (
-                <div
-                  role="checkbox"
-                  aria-checked={noKit}
-                  tabIndex={0}
-                  onClick={() => alternarItemKit(i.produto.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === ' ' || e.key === 'Enter') {
-                      e.preventDefault()
-                      alternarItemKit(i.produto.id)
-                    }
-                  }}
-                  aria-label={`Incluir ${nomeCompleto(i.produto)} no kit`}
-                  className="flex touch-manipulation cursor-pointer items-center justify-between gap-2 select-none py-1"
-                >
-                  <span className="flex min-w-0 items-center gap-2 text-neutral-700">
-                    <span
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 text-sm font-bold text-white ${
-                        noKit
-                          ? 'border-[var(--cor-primaria)] bg-[var(--cor-primaria)]'
-                          : 'border-neutral-300 bg-white'
-                      }`}
-                    >
-                      {noKit && '✓'}
-                    </span>
-                    <span className="truncate">
-                      {nomeCompleto(i.produto)}{' '}
-                      <span className="text-neutral-400">#{i.produto.id.slice(-4)}</span>
-                    </span>
-                  </span>
-                  <span className="shrink-0 font-medium text-neutral-900">
-                    R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-neutral-700">{nomeCompleto(i.produto)}</span>
-                  <span className="shrink-0 font-medium text-neutral-900">
-                    R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center justify-between gap-2 pl-6">
+          {itens.map((i) => (
+            <li key={i.produto.id} className="flex flex-col gap-1.5 py-2 text-sm first:pt-0 last:pb-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-neutral-700">{nomeCompleto(i.produto)}</span>
+                <span className="shrink-0 font-medium text-neutral-900">
+                  R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
@@ -152,19 +183,25 @@ export function DescontoStep({
                 </button>
               </div>
             </li>
-            )
-          })}
+          ))}
         </ul>
       </div>
 
+      {itens.length >= 2 && (
+        <button
+          type="button"
+          onClick={() => setSelecionandoKit(true)}
+          className="rounded-lg border border-neutral-300 py-2.5 text-sm font-medium text-neutral-700"
+        >
+          {itensDoKit.size >= 2 ? `Editar kit (${itensDoKit.size} itens)` : 'Marcar itens do kit'}
+        </button>
+      )}
+
       {itensDoKit.size >= 2 && (
         <div className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
-          <p className="mb-1 text-sm font-bold text-neutral-700">Kit ({itensDoKit.size} itens marcados)</p>
+          <p className="mb-1 text-sm font-bold text-neutral-700">Kit ({itensDoKit.size} itens)</p>
           <p className="mb-2 text-xs text-neutral-500">
-            {itens
-              .filter((i) => itensDoKit.has(i.produto.id))
-              .map((i) => nomeCompleto(i.produto))
-              .join(', ')}
+            {itensDoKitOrdenados.map((i) => nomeCompleto(i.produto)).join(', ')}
           </p>
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-neutral-700">Desconto do kit (R$)</span>
@@ -267,6 +304,18 @@ export function DescontoStep({
           Avançar
         </button>
       </div>
+
+      {selecionandoKit && (
+        <SelecaoKitOverlay
+          itens={itens}
+          selecaoInicial={itensDoKit}
+          onCancelar={() => setSelecionandoKit(false)}
+          onConfirmar={(selecao) => {
+            setItensDoKit(selecao)
+            setSelecionandoKit(false)
+          }}
+        />
+      )}
     </div>
   )
 }
