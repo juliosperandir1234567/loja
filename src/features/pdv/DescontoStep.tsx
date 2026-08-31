@@ -79,7 +79,7 @@ export function DescontoStep({
                     }
                   }}
                   aria-label={`Incluir ${nomeCompleto(i.produto)} no kit`}
-                  className="flex cursor-pointer items-center justify-between gap-2 select-none"
+                  className="flex touch-manipulation cursor-pointer items-center justify-between gap-2 select-none py-1"
                 >
                   <span className="flex min-w-0 items-center gap-2 text-neutral-700">
                     <span
