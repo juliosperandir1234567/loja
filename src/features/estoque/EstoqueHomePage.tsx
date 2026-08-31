@@ -62,10 +62,10 @@ export function EstoqueHomePage() {
         )}
 
         <Link
-          to="/produtos"
+          to="/produtos?estoque=positivo"
           className="flex items-center justify-center rounded-lg border border-neutral-300 py-2.5 text-sm font-medium text-neutral-700"
         >
-          Ver produtos cadastrados
+          Ver produtos em estoque
         </Link>
       </div>
     </AppShell>

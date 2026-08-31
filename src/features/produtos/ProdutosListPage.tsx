@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useProdutos } from './hooks'
 import { MARCAS, FORMATOS } from './api'
 import { AppShell } from '../../components/layout/AppShell'
@@ -7,18 +7,23 @@ import { AppShell } from '../../components/layout/AppShell'
 const TIPOS = ['Masculino', 'Feminino', 'Unissex'] as const
 
 export function ProdutosListPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const somenteComEstoque = searchParams.get('estoque') === 'positivo'
   const [busca, setBusca] = useState('')
   const [fragrancia, setFragrancia] = useState('')
   const [tipo, setTipo] = useState('')
   const [formato, setFormato] = useState('')
   const [marca, setMarca] = useState<'Todos' | (typeof MARCAS)[number]>('Todos')
-  const { data: produtos, isLoading } = useProdutos({
+  const { data: produtosTodos, isLoading } = useProdutos({
     nome: busca,
     fragrancia,
     tipo,
     formato,
     marca: marca === 'Todos' ? undefined : marca,
   })
+  const produtos = somenteComEstoque
+    ? produtosTodos?.filter((p) => p.estoque_atual > 0)
+    : produtosTodos
 
   return (
     <AppShell title="Produtos">
@@ -95,6 +100,18 @@ export function ProdutosListPage() {
         >
           Preços em massa
         </Link>
+
+        {somenteComEstoque && (
+          <div className="mb-2 flex items-center justify-between rounded-lg bg-neutral-100 px-3 py-2 text-sm text-neutral-600">
+            <span>Mostrando só produtos com estoque</span>
+            <button
+              onClick={() => setSearchParams({})}
+              className="font-medium text-neutral-900 underline"
+            >
+              Ver todos
+            </button>
+          </div>
+        )}
 
         {!isLoading && (
           <p className="mb-2 text-sm text-neutral-500">
