@@ -6,6 +6,7 @@ export interface ProdutoExterno {
   fragranciaLinha?: string
   tipo?: string
   tamanho?: string
+  formato?: string
   imagemUrl?: string
 }
 
@@ -40,6 +41,7 @@ async function buscarNoCatalogoLocal(codigo: string): Promise<ProdutoExterno | n
     fragranciaLinha: data.fragrancia_linha ?? undefined,
     tipo: data.tipo ?? undefined,
     tamanho: data.tamanho ?? undefined,
+    formato: data.formato ?? undefined,
   }
 }
 
@@ -95,14 +97,15 @@ export interface CatalogoItem {
   fragrancia_linha: string | null
   tipo: string | null
   tamanho: string | null
+  formato: string | null
 }
 
-// carrega o catálogo inteiro (nome/fragrância/tipo/tamanho) para alimentar as
+// carrega o catálogo inteiro (nome/fragrância/tipo/tamanho/formato) para alimentar as
 // sugestões de fragrância ao digitar o nome do produto no cadastro
 export async function listarCatalogoProdutos(): Promise<CatalogoItem[]> {
   const { data, error } = await supabase
     .from('catalogo_produtos')
-    .select('marca, nome, fragrancia_linha, tipo, tamanho')
+    .select('marca, nome, fragrancia_linha, tipo, tamanho, formato')
   if (error) throw error
   return data
 }

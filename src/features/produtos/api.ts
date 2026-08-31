@@ -10,6 +10,7 @@ export interface FiltroProdutos {
   fragrancia?: string
   tipo?: string
   marca?: string
+  formato?: string
 }
 
 export async function listarProdutos(filtros: FiltroProdutos = {}) {
@@ -18,6 +19,7 @@ export async function listarProdutos(filtros: FiltroProdutos = {}) {
   if (filtros.fragrancia) query = query.ilike('fragrancia_linha', `%${filtros.fragrancia}%`)
   if (filtros.tipo) query = query.eq('tipo', filtros.tipo as TipoProduto)
   if (filtros.marca) query = query.eq('marca', filtros.marca as Marca)
+  if (filtros.formato) query = query.eq('formato', filtros.formato)
   const { data, error } = await query
   if (error) throw error
   return data
@@ -56,6 +58,7 @@ export async function criarProdutoComEstoqueInicial(
     p_foto_url: produto.foto_url ?? null,
     p_tamanho: produto.tamanho ?? null,
     p_tipo: produto.tipo ?? null,
+    p_formato: produto.formato ?? null,
   })
   if (error) throw error
   return data
@@ -105,10 +108,21 @@ export async function uploadFotoProduto(produtoId: string, file: File) {
 
 export const MARCAS: Marca[] = ['Natura', 'Boticário']
 
+export const FORMATOS = [
+  'Deo Colônia',
+  'Rollon',
+  'Desodorante',
+  'Body Spray',
+  'Hidratante',
+  'Refil Hidratante',
+  'Sabonete',
+]
+
 export function precoEfetivo(produto: Pick<Produto, 'preco_venda' | 'preco_promocional'>) {
   return produto.preco_promocional ?? produto.preco_venda
 }
 
-export function nomeCompleto(produto: Pick<Produto, 'nome' | 'fragrancia_linha'>) {
-  return produto.fragrancia_linha ? `${produto.nome} - ${produto.fragrancia_linha}` : produto.nome
+export function nomeCompleto(produto: Pick<Produto, 'nome' | 'fragrancia_linha' | 'formato'>) {
+  const base = produto.fragrancia_linha ? `${produto.nome} - ${produto.fragrancia_linha}` : produto.nome
+  return produto.formato ? `${base} (${produto.formato})` : base
 }

@@ -8,7 +8,7 @@ import { AppShell } from '../../components/layout/AppShell'
 import { BarcodeScannerModal } from '../../components/BarcodeScannerModal'
 import { ConfirmDeleteModal } from '../../components/ConfirmDeleteModal'
 import { useProduto, useCriarProduto, useAtualizarProduto, useDeletarProduto, useCatalogoProdutos } from './hooks'
-import { buscarProdutoPorCodigoBarras, uploadFotoProduto, MARCAS } from './api'
+import { buscarProdutoPorCodigoBarras, uploadFotoProduto, MARCAS, FORMATOS } from './api'
 import { buscarProdutoExternoPorEAN } from './ean'
 
 const schema = z
@@ -18,6 +18,7 @@ const schema = z
     fragrancia_linha: z.string().optional(),
     tipo: z.enum(['Masculino', 'Feminino', 'Unissex']).optional().or(z.literal('')),
     tamanho: z.string().optional(),
+    formato: z.string().optional(),
     codigo_barras: z.string().optional(),
     preco_custo: z.coerce.number().min(0),
     preco_venda: z.coerce.number().min(0.01, 'Informe o preço revista'),
@@ -29,6 +30,7 @@ const schema = z
     ...v,
     preco_promocional: v.preco_promocional === '' ? null : (v.preco_promocional ?? null),
     tipo: v.tipo === '' ? null : (v.tipo ?? null),
+    formato: v.formato === '' ? null : (v.formato ?? null),
   }))
   .refine(
     (v) => v.preco_promocional === null || v.preco_promocional < v.preco_venda,
@@ -84,6 +86,7 @@ export function ProdutoFormPage() {
           fragrancia_linha: produtoExistente.fragrancia_linha ?? '',
           tipo: produtoExistente.tipo ?? '',
           tamanho: produtoExistente.tamanho ?? '',
+          formato: produtoExistente.formato ?? '',
           codigo_barras: produtoExistente.codigo_barras ?? '',
           preco_custo: produtoExistente.preco_custo,
           preco_venda: produtoExistente.preco_venda,
@@ -118,7 +121,8 @@ export function ProdutoFormPage() {
           setValue('tipo', dados.tipo as 'Masculino' | 'Feminino' | 'Unissex')
         }
         if (dados.tamanho && !getValues('tamanho')) setValue('tamanho', dados.tamanho)
-        if (dados.nome || dados.marca || dados.fragranciaLinha || dados.tipo || dados.tamanho) {
+        if (dados.formato && !getValues('formato')) setValue('formato', dados.formato)
+        if (dados.nome || dados.marca || dados.fragranciaLinha || dados.tipo || dados.tamanho || dados.formato) {
           toast.success('Dados do produto encontrados e preenchidos automaticamente')
         }
       } finally {
@@ -154,7 +158,7 @@ export function ProdutoFormPage() {
     const vistos = new Set<string>()
     const unicos: typeof candidatos = []
     for (const c of candidatos) {
-      const chave = `${c.fragrancia_linha ?? ''}|${c.tipo ?? ''}|${c.tamanho ?? ''}`
+      const chave = `${c.fragrancia_linha ?? ''}|${c.tipo ?? ''}|${c.tamanho ?? ''}|${c.formato ?? ''}`
       if (vistos.has(chave)) continue
       vistos.add(chave)
       unicos.push(c)
@@ -266,12 +270,14 @@ export function ProdutoFormPage() {
                         setValue('fragrancia_linha', s.fragrancia_linha ?? '')
                         if (s.tipo) setValue('tipo', s.tipo as 'Masculino' | 'Feminino' | 'Unissex')
                         if (s.tamanho) setValue('tamanho', s.tamanho)
+                        setValue('formato', s.formato ?? '')
                         setMostrarSugestoes(false)
                       }}
                       className="block w-full px-3 py-2 text-left text-sm hover:bg-neutral-50"
                     >
                       {s.fragrancia_linha || '(sem variante)'}
                       <span className="text-neutral-400">
+                        {s.formato ? ` · ${s.formato}` : ''}
                         {s.tipo ? ` · ${s.tipo}` : ''}
                         {s.tamanho ? ` · ${s.tamanho}` : ''}
                       </span>
@@ -281,6 +287,26 @@ export function ProdutoFormPage() {
               </ul>
             )}
           </div>
+        </label>
+
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-neutral-700">Formato</span>
+          <input
+            {...register('formato')}
+            list="formatos-sugeridos"
+            placeholder="Ex: Deo Colônia, Rollon, Desodorante"
+            autoComplete="off"
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+          />
+          <datalist id="formatos-sugeridos">
+            {FORMATOS.map((f) => (
+              <option key={f} value={f} />
+            ))}
+          </datalist>
+          <p className="mt-1 text-xs text-neutral-500">
+            Use quando a mesma fragrância existe em mais de uma apresentação (ex: Deo Colônia, Rollon,
+            Desodorante).
+          </p>
         </label>
 
         <div className="flex gap-3">

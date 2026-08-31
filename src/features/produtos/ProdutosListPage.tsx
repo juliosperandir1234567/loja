@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useProdutos } from './hooks'
-import { MARCAS } from './api'
+import { MARCAS, FORMATOS } from './api'
 import { AppShell } from '../../components/layout/AppShell'
 
 const TIPOS = ['Masculino', 'Feminino', 'Unissex'] as const
@@ -10,11 +10,13 @@ export function ProdutosListPage() {
   const [busca, setBusca] = useState('')
   const [fragrancia, setFragrancia] = useState('')
   const [tipo, setTipo] = useState('')
+  const [formato, setFormato] = useState('')
   const [marca, setMarca] = useState<'Todos' | (typeof MARCAS)[number]>('Todos')
   const { data: produtos, isLoading } = useProdutos({
     nome: busca,
     fragrancia,
     tipo,
+    formato,
     marca: marca === 'Todos' ? undefined : marca,
   })
 
@@ -54,6 +56,18 @@ export function ProdutosListPage() {
             {TIPOS.map((t) => (
               <option key={t} value={t}>
                 {t}
+              </option>
+            ))}
+          </select>
+          <select
+            value={formato}
+            onChange={(e) => setFormato(e.target.value)}
+            className="rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+          >
+            <option value="">Todos os formatos</option>
+            {FORMATOS.map((f) => (
+              <option key={f} value={f}>
+                {f}
               </option>
             ))}
           </select>
@@ -102,6 +116,7 @@ export function ProdutosListPage() {
                     <p className="text-sm text-neutral-500">
                       {p.marca}
                       {p.fragrancia_linha ? ` · ${p.fragrancia_linha}` : ''}
+                      {p.formato ? ` · ${p.formato}` : ''}
                       {p.tamanho ? ` · ${p.tamanho}` : ''}
                     </p>
                   </div>

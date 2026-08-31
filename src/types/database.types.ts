@@ -17,6 +17,7 @@ export interface Database {
           fragrancia_linha: string | null
           tipo: string | null
           tamanho: string | null
+          formato: string | null
           categoria: string | null
           confianca: string | null
           criado_em: string
@@ -89,6 +90,7 @@ export interface Database {
           foto_url: string | null
           tamanho: string | null
           tipo: TipoProduto | null
+          formato: string | null
           ativo: boolean
           criado_em: string
           atualizado_em: string
@@ -105,6 +107,7 @@ export interface Database {
           foto_url?: string | null
           tamanho?: string | null
           tipo?: TipoProduto | null
+          formato?: string | null
           ativo?: boolean
         }
         Update: Partial<{
@@ -119,6 +122,7 @@ export interface Database {
           foto_url: string | null
           tamanho: string | null
           tipo: TipoProduto | null
+          formato: string | null
           ativo: boolean
         }>
         Relationships: []
@@ -400,6 +404,7 @@ export interface Database {
           p_foto_url?: string | null
           p_tamanho?: string | null
           p_tipo?: TipoProduto | null
+          p_formato?: string | null
         }
         Returns: Database['public']['Tables']['produtos']['Row']
       }
