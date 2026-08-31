@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { AppShell } from '../../components/layout/AppShell'
 import { ProdutoGridPicker } from '../../components/ProdutoGridPicker'
@@ -8,6 +8,7 @@ import type { Cliente } from '../clientes/api'
 import type { FormaPagamento } from '../../types/database.types'
 import type { Venda } from './api'
 import { useFinalizarVenda } from './hooks'
+import { DescontoStep } from './DescontoStep'
 import { FormaPagamentoStep } from './FormaPagamentoStep'
 import { SignaturePadStep } from './SignaturePadStep'
 import { ComprovanteStep } from './ComprovanteStep'
@@ -17,7 +18,7 @@ export interface CarrinhoItem {
   quantidade: number
 }
 
-type Etapa = 'carrinho' | 'pagamento' | 'assinatura' | 'comprovante'
+type Etapa = 'carrinho' | 'desconto' | 'pagamento' | 'assinatura' | 'comprovante'
 
 interface PagamentoEscolhido {
   formaPagamento: FormaPagamento
@@ -30,12 +31,17 @@ interface PagamentoEscolhido {
 export function PdvPage() {
   const [etapa, setEtapa] = useState<Etapa>('carrinho')
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([])
+  const [desconto, setDesconto] = useState(0)
   const [pagamento, setPagamento] = useState<PagamentoEscolhido | null>(null)
   const [vendaFinalizada, setVendaFinalizada] = useState<Venda | null>(null)
   const [assinaturaDataUrl, setAssinaturaDataUrl] = useState<string | null>(null)
   const finalizarVenda = useFinalizarVenda()
 
   const total = carrinho.reduce((acc, i) => acc + i.quantidade * precoEfetivo(i.produto), 0)
+
+  useEffect(() => {
+    if ((etapa === 'desconto' || etapa === 'pagamento') && carrinho.length === 0) setEtapa('carrinho')
+  }, [etapa, carrinho.length])
 
   function adicionarProduto(produto: Produto) {
     if (produto.estoque_atual <= 0) {
@@ -77,6 +83,7 @@ export function PdvPage() {
 
   function resetar() {
     setCarrinho([])
+    setDesconto(0)
     setPagamento(null)
     setVendaFinalizada(null)
     setAssinaturaDataUrl(null)
@@ -103,13 +110,31 @@ export function PdvPage() {
     }
   }
 
+  if (etapa === 'desconto') {
+    return (
+      <AppShell title="Desconto">
+        <DescontoStep
+          itens={carrinho}
+          total={total}
+          onAjustarQuantidade={ajustarQuantidade}
+          onVoltar={() => setEtapa('carrinho')}
+          onAvancar={(d) => {
+            setDesconto(d)
+            setEtapa('pagamento')
+          }}
+        />
+      </AppShell>
+    )
+  }
+
   if (etapa === 'pagamento') {
     return (
       <AppShell title="Forma de pagamento">
         <FormaPagamentoStep
           itens={carrinho}
           total={total}
-          onVoltar={() => setEtapa('carrinho')}
+          desconto={desconto}
+          onVoltar={() => setEtapa('desconto')}
           onConfirmar={(p) => {
             setPagamento(p)
             setEtapa('assinatura')
@@ -203,10 +228,10 @@ export function PdvPage() {
             <span className="text-2xl font-bold text-neutral-900">R$ {total.toFixed(2)}</span>
           </div>
           <button
-            onClick={() => setEtapa('pagamento')}
+            onClick={() => setEtapa('desconto')}
             className="w-full rounded-xl bg-[var(--cor-primaria)] py-4 text-lg font-bold text-white"
           >
-            Ir para pagamento →
+            Continuar →
           </button>
         </div>
       )}

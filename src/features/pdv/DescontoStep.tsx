@@ -1,0 +1,196 @@
+import { useEffect, useState } from 'react'
+import { precoEfetivo, nomeCompleto } from '../produtos/api'
+import type { CarrinhoItem } from './PdvPage'
+
+export function DescontoStep({
+  itens,
+  total,
+  onAjustarQuantidade,
+  onAvancar,
+  onVoltar,
+}: {
+  itens: CarrinhoItem[]
+  total: number
+  onAjustarQuantidade: (produtoId: string, quantidade: number) => void
+  onAvancar: (desconto: number) => void
+  onVoltar: () => void
+}) {
+  const [descontoGeral, setDescontoGeral] = useState('')
+  const [itensDoKit, setItensDoKit] = useState<Set<string>>(new Set())
+  const [descontoKit, setDescontoKit] = useState('')
+
+  useEffect(() => {
+    const idsValidos = new Set(itens.map((i) => i.produto.id))
+    setItensDoKit((atual) => {
+      const novo = new Set([...atual].filter((id) => idsValidos.has(id)))
+      return novo.size === atual.size ? atual : novo
+    })
+  }, [itens])
+
+  function alternarItemKit(produtoId: string) {
+    setItensDoKit((atual) => {
+      const novo = new Set(atual)
+      if (novo.has(produtoId)) novo.delete(produtoId)
+      else novo.add(produtoId)
+      return novo
+    })
+  }
+
+  const subtotalKit = itens
+    .filter((i) => itensDoKit.has(i.produto.id))
+    .reduce((acc, i) => acc + i.quantidade * precoEfetivo(i.produto), 0)
+
+  const numeroDescontoKit = itensDoKit.size >= 2 ? Math.max(0, Number(descontoKit) || 0) : 0
+  const valorFinalKit = Math.max(0, subtotalKit - numeroDescontoKit)
+  const numeroDescontoGeral = Math.max(0, Number(descontoGeral) || 0)
+  const numeroDesconto = numeroDescontoGeral + numeroDescontoKit
+  const totalComDesconto = Math.max(0, total - numeroDesconto)
+  const descontoInvalido = numeroDesconto > total || numeroDescontoKit > subtotalKit
+
+  return (
+    <div className="flex flex-col gap-4 p-4">
+      <div className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
+        <p className="mb-2 text-sm font-bold text-neutral-700">
+          {itens.reduce((acc, i) => acc + i.quantidade, 0)} item(ns) nesta venda
+        </p>
+        <ul className="flex flex-col divide-y divide-neutral-100">
+          {itens.map((i) => (
+            <li key={i.produto.id} className="flex flex-col gap-1.5 py-2 text-sm first:pt-0 last:pb-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex min-w-0 items-center gap-2 text-neutral-700">
+                  {itens.length >= 2 && (
+                    <input
+                      type="checkbox"
+                      checked={itensDoKit.has(i.produto.id)}
+                      onChange={() => alternarItemKit(i.produto.id)}
+                      className="h-4 w-4 shrink-0"
+                      aria-label={`Incluir ${nomeCompleto(i.produto)} no kit`}
+                    />
+                  )}
+                  <span className="truncate">{nomeCompleto(i.produto)}</span>
+                </span>
+                <span className="shrink-0 font-medium text-neutral-900">
+                  R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 pl-6">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onAjustarQuantidade(i.produto.id, i.quantidade - 1)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-neutral-300 text-base font-bold text-neutral-700"
+                    aria-label={`Diminuir quantidade de ${nomeCompleto(i.produto)}`}
+                  >
+                    −
+                  </button>
+                  <span className="w-5 text-center font-medium">{i.quantidade}</span>
+                  <button
+                    type="button"
+                    onClick={() => onAjustarQuantidade(i.produto.id, i.quantidade + 1)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-neutral-300 text-base font-bold text-neutral-700"
+                    aria-label={`Aumentar quantidade de ${nomeCompleto(i.produto)}`}
+                  >
+                    +
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onAjustarQuantidade(i.produto.id, 0)}
+                  className="text-xs font-medium text-red-600 underline"
+                >
+                  Remover
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {itensDoKit.size >= 2 && (
+        <div className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
+          <p className="mb-2 text-sm font-bold text-neutral-700">Kit ({itensDoKit.size} itens marcados)</p>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-neutral-700">Desconto do kit (R$)</span>
+            <input
+              type="number"
+              step="0.01"
+              min={0}
+              value={descontoKit}
+              onChange={(e) => setDescontoKit(e.target.value)}
+              placeholder="Ex: 20,00"
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+            />
+          </label>
+          {numeroDescontoKit > subtotalKit && (
+            <p className="mt-1 text-sm text-red-600">Desconto do kit maior que o subtotal dos itens marcados</p>
+          )}
+
+          <div className="mt-3 flex flex-col gap-1 border-t border-neutral-100 pt-3 text-sm">
+            <div className="flex justify-between text-neutral-600">
+              <span>Subtotal do kit</span>
+              <span>R$ {subtotalKit.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-neutral-600">
+              <span>Desconto do kit</span>
+              <span>− R$ {numeroDescontoKit.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-base font-bold text-neutral-900">
+              <span>Valor final do kit</span>
+              <span>R$ {valorFinalKit.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <label className="block">
+        <span className="mb-1 block text-sm font-medium text-neutral-700">Desconto geral (R$, opcional)</span>
+        <input
+          type="number"
+          step="0.01"
+          min={0}
+          value={descontoGeral}
+          onChange={(e) => setDescontoGeral(e.target.value)}
+          className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+        />
+      </label>
+
+      <div className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
+        <div className="flex flex-col gap-1 text-sm">
+          <div className="flex justify-between text-neutral-600">
+            <span>Subtotal</span>
+            <span>R$ {total.toFixed(2)}</span>
+          </div>
+          {numeroDesconto > 0 && (
+            <div className="flex justify-between text-neutral-600">
+              <span>Desconto total ({numeroDescontoGeral > 0 && numeroDescontoKit > 0 ? 'geral + kit' : numeroDescontoKit > 0 ? 'kit' : 'geral'})</span>
+              <span>− R$ {numeroDesconto.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-lg font-bold text-neutral-900">
+            <span>Total</span>
+            <span>R$ {totalComDesconto.toFixed(2)}</span>
+          </div>
+        </div>
+        {descontoInvalido && numeroDesconto > total && (
+          <p className="mt-2 text-sm text-red-600">Desconto não pode ser maior que o total</p>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={onVoltar}
+          className="flex-1 rounded-lg border border-neutral-300 py-3 text-sm font-medium"
+        >
+          Voltar
+        </button>
+        <button
+          onClick={() => onAvancar(numeroDesconto)}
+          disabled={descontoInvalido}
+          className="flex-1 rounded-lg bg-[var(--cor-primaria)] py-3 text-sm font-medium text-white disabled:opacity-50"
+        >
+          Avançar
+        </button>
+      </div>
+    </div>
+  )
+}

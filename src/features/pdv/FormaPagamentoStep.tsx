@@ -14,11 +14,13 @@ const OPCOES: { valor: FormaPagamento; label: string }[] = [
 export function FormaPagamentoStep({
   itens,
   total,
+  desconto,
   onConfirmar,
   onVoltar,
 }: {
   itens: CarrinhoItem[]
   total: number
+  desconto: number
   onConfirmar: (params: {
     formaPagamento: FormaPagamento
     cliente: Cliente | null
@@ -30,29 +32,14 @@ export function FormaPagamentoStep({
 }) {
   const [forma, setForma] = useState<FormaPagamento | null>(null)
   const [cliente, setCliente] = useState<Cliente | null>(null)
-  const [desconto, setDesconto] = useState('')
   const [valorEntrada, setValorEntrada] = useState('')
   const [combinacao, setCombinacao] = useState('')
-  const [itensDoKit, setItensDoKit] = useState<Set<string>>(new Set())
-  const [descontoKit, setDescontoKit] = useState('')
 
-  const numeroDescontoKit = itensDoKit.size >= 2 ? Math.max(0, Number(descontoKit) || 0) : 0
-  const numeroDesconto = Math.max(0, Number(desconto) || 0) + numeroDescontoKit
-  const totalComDesconto = Math.max(0, total - numeroDesconto)
+  const totalComDesconto = Math.max(0, total - desconto)
   const numeroEntrada = Math.max(0, Number(valorEntrada) || 0)
-
-  function alternarItemKit(produtoId: string) {
-    setItensDoKit((atual) => {
-      const novo = new Set(atual)
-      if (novo.has(produtoId)) novo.delete(produtoId)
-      else novo.add(produtoId)
-      return novo
-    })
-  }
 
   function podeContinuar() {
     if (!forma) return false
-    if (numeroDesconto > total) return false
     if (forma === 'fiado') {
       if (!cliente) return false
       if (numeroEntrada > totalComDesconto) return false
@@ -68,20 +55,9 @@ export function FormaPagamentoStep({
         </p>
         <ul className="flex flex-col gap-1">
           {itens.map((i) => (
-            <li key={i.produto.id} className="flex items-center justify-between gap-2 text-sm">
-              <span className="flex min-w-0 items-center gap-2 text-neutral-700">
-                {itens.length >= 2 && (
-                  <input
-                    type="checkbox"
-                    checked={itensDoKit.has(i.produto.id)}
-                    onChange={() => alternarItemKit(i.produto.id)}
-                    className="h-4 w-4 shrink-0"
-                    aria-label={`Incluir ${nomeCompleto(i.produto)} no kit`}
-                  />
-                )}
-                <span className="truncate">
-                  {i.quantidade}x {nomeCompleto(i.produto)}
-                </span>
+            <li key={i.produto.id} className="flex justify-between text-sm">
+              <span className="truncate text-neutral-700">
+                {i.quantidade}x {nomeCompleto(i.produto)}
               </span>
               <span className="shrink-0 font-medium text-neutral-900">
                 R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
@@ -89,50 +65,16 @@ export function FormaPagamentoStep({
             </li>
           ))}
         </ul>
-
-        {itensDoKit.size >= 2 && (
-          <div className="mt-3 border-t border-neutral-100 pt-3">
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-neutral-700">
-                Desconto do kit ({itensDoKit.size} itens marcados)
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                min={0}
-                value={descontoKit}
-                onChange={(e) => setDescontoKit(e.target.value)}
-                placeholder="Ex: 20,00"
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
-              />
-            </label>
-          </div>
-        )}
       </div>
 
       <div>
         <p className="text-lg font-semibold">Total: R$ {totalComDesconto.toFixed(2)}</p>
-        {numeroDesconto > 0 && (
+        {desconto > 0 && (
           <p className="text-sm text-neutral-500">
-            (R$ {total.toFixed(2)} − desconto de R$ {numeroDesconto.toFixed(2)})
+            (R$ {total.toFixed(2)} − desconto de R$ {desconto.toFixed(2)})
           </p>
         )}
       </div>
-
-      <label className="block">
-        <span className="mb-1 block text-sm font-medium text-neutral-700">Desconto geral (R$, opcional)</span>
-        <input
-          type="number"
-          step="0.01"
-          min={0}
-          value={desconto}
-          onChange={(e) => setDesconto(e.target.value)}
-          className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
-        />
-        {numeroDesconto > total && (
-          <p className="mt-1 text-sm text-red-600">Desconto não pode ser maior que o total</p>
-        )}
-      </label>
 
       <div className="flex flex-col gap-2">
         {OPCOES.map((op) => (
@@ -224,7 +166,7 @@ export function FormaPagamentoStep({
             onConfirmar({
               formaPagamento: forma,
               cliente,
-              desconto: numeroDesconto,
+              desconto,
               valorEntrada: forma === 'fiado' ? numeroEntrada : 0,
               combinacao: forma === 'fiado' ? combinacao || null : null,
             })
