@@ -144,6 +144,7 @@ export function ProdutoFormPage() {
 
   const nomeAtual = watch('nome')
   const marcaAtual = watch('marca')
+  const formatoAtual = watch('formato')
 
   const sugestoesFragrancia = useMemo(() => {
     if (!catalogo || isEdit) return []
@@ -156,16 +157,24 @@ export function ProdutoFormPage() {
         ? doMesmoNome
         : catalogo.filter((c) => c.marca === marcaAtual && c.nome.toLowerCase().includes(nomeNorm))
 
+    // quando o formato já foi escolhido, mostra só as fragrâncias desse
+    // formato (cada formato tem seu proprio tamanho, ex: Body Spray 200ml)
+    const formatoNorm = formatoAtual?.trim().toLowerCase()
+    const candidatosDoFormato = formatoNorm
+      ? candidatos.filter((c) => (c.formato ?? '').toLowerCase() === formatoNorm)
+      : candidatos
+    const base = candidatosDoFormato.length > 0 ? candidatosDoFormato : candidatos
+
     const vistos = new Set<string>()
-    const unicos: typeof candidatos = []
-    for (const c of candidatos) {
+    const unicos: typeof base = []
+    for (const c of base) {
       const chave = `${c.fragrancia_linha ?? ''}|${c.tipo ?? ''}|${c.tamanho ?? ''}|${c.formato ?? ''}`
       if (vistos.has(chave)) continue
       vistos.add(chave)
       unicos.push(c)
     }
     return unicos.slice(0, 30)
-  }, [catalogo, isEdit, nomeAtual, marcaAtual])
+  }, [catalogo, isEdit, nomeAtual, marcaAtual, formatoAtual])
 
   const sugestoesNome = useMemo(() => {
     if (!catalogo || isEdit) return []
@@ -184,7 +193,6 @@ export function ProdutoFormPage() {
     return unicos.slice(0, 20)
   }, [catalogo, isEdit, nomeAtual, marcaAtual])
 
-  const formatoAtual = watch('formato')
   const fragranciaAtual = watch('fragrancia_linha')
 
   // tamanho depende do formato (ex: Deo Colônia 100ml x Body Spray 200ml da
