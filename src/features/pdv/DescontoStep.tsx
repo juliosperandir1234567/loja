@@ -40,9 +40,12 @@ export function DescontoStep({
     .filter((i) => itensDoKit.has(i.produto.id))
     .reduce((acc, i) => acc + i.quantidade * precoEfetivo(i.produto), 0)
 
-  const numeroDescontoKit = itensDoKit.size >= 2 ? Math.max(0, Number(descontoKit) || 0) : 0
+  // aceita "," ou "." como separador decimal (teclado numerico do celular
+  // costuma inserir virgula, que <input type="number"> rejeita silenciosamente)
+  const numeroDescontoKit =
+    itensDoKit.size >= 2 ? Math.max(0, Number(descontoKit.replace(',', '.')) || 0) : 0
   const valorFinalKit = Math.max(0, subtotalKit - numeroDescontoKit)
-  const numeroDescontoGeral = Math.max(0, Number(descontoGeral) || 0)
+  const numeroDescontoGeral = Math.max(0, Number(descontoGeral.replace(',', '.')) || 0)
   const numeroDesconto = numeroDescontoGeral + numeroDescontoKit
   const totalComDesconto = Math.max(0, total - numeroDesconto)
   const descontoInvalido = numeroDesconto > total || numeroDescontoKit > subtotalKit
@@ -64,21 +67,36 @@ export function DescontoStep({
               }`}
             >
               {itens.length >= 2 ? (
-                <label className="flex items-center justify-between gap-2">
+                <div
+                  role="checkbox"
+                  aria-checked={noKit}
+                  tabIndex={0}
+                  onClick={() => alternarItemKit(i.produto.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                      e.preventDefault()
+                      alternarItemKit(i.produto.id)
+                    }
+                  }}
+                  aria-label={`Incluir ${nomeCompleto(i.produto)} no kit`}
+                  className="flex cursor-pointer items-center justify-between gap-2 select-none"
+                >
                   <span className="flex min-w-0 items-center gap-2 text-neutral-700">
-                    <input
-                      type="checkbox"
-                      checked={noKit}
-                      onChange={() => alternarItemKit(i.produto.id)}
-                      className="h-5 w-5 shrink-0"
-                      aria-label={`Incluir ${nomeCompleto(i.produto)} no kit`}
-                    />
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 text-sm font-bold text-white ${
+                        noKit
+                          ? 'border-[var(--cor-primaria)] bg-[var(--cor-primaria)]'
+                          : 'border-neutral-300 bg-white'
+                      }`}
+                    >
+                      {noKit && '✓'}
+                    </span>
                     <span className="truncate">{nomeCompleto(i.produto)}</span>
                   </span>
                   <span className="shrink-0 font-medium text-neutral-900">
                     R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
                   </span>
-                </label>
+                </div>
               ) : (
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-neutral-700">{nomeCompleto(i.produto)}</span>
@@ -123,15 +141,20 @@ export function DescontoStep({
 
       {itensDoKit.size >= 2 && (
         <div className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
-          <p className="mb-2 text-sm font-bold text-neutral-700">Kit ({itensDoKit.size} itens marcados)</p>
+          <p className="mb-1 text-sm font-bold text-neutral-700">Kit ({itensDoKit.size} itens marcados)</p>
+          <p className="mb-2 text-xs text-neutral-500">
+            {itens
+              .filter((i) => itensDoKit.has(i.produto.id))
+              .map((i) => nomeCompleto(i.produto))
+              .join(', ')}
+          </p>
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-neutral-700">Desconto do kit (R$)</span>
             <input
-              type="number"
-              step="0.01"
-              min={0}
+              type="text"
+              inputMode="decimal"
               value={descontoKit}
-              onChange={(e) => setDescontoKit(e.target.value)}
+              onChange={(e) => setDescontoKit(e.target.value.replace(/[^0-9.,]/g, ''))}
               placeholder="Ex: 20,00"
               className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
             />
@@ -160,11 +183,10 @@ export function DescontoStep({
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-neutral-700">Desconto geral (R$, opcional)</span>
         <input
-          type="number"
-          step="0.01"
-          min={0}
+          type="text"
+          inputMode="decimal"
           value={descontoGeral}
-          onChange={(e) => setDescontoGeral(e.target.value)}
+          onChange={(e) => setDescontoGeral(e.target.value.replace(/[^0-9.,]/g, ''))}
           className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
         />
       </label>
