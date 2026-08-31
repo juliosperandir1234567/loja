@@ -114,7 +114,7 @@ export const FORMATOS = [
   'Deo Colônia',
   'Rollon',
   'Desodorante',
-  'Body Spray',
+  'Body Splash',
   'Hidratante',
   'Refil Hidratante',
   'Sabonete',

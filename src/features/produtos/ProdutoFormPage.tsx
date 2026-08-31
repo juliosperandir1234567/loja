@@ -158,7 +158,7 @@ export function ProdutoFormPage() {
         : catalogo.filter((c) => c.marca === marcaAtual && c.nome.toLowerCase().includes(nomeNorm))
 
     // quando o formato já foi escolhido, mostra só as fragrâncias desse
-    // formato (cada formato tem seu proprio tamanho, ex: Body Spray 200ml)
+    // formato (cada formato tem seu proprio tamanho, ex: Body Splash 200ml)
     const formatoNorm = formatoAtual?.trim().toLowerCase()
     const candidatosDoFormato = formatoNorm
       ? candidatos.filter((c) => (c.formato ?? '').toLowerCase() === formatoNorm)
@@ -195,7 +195,7 @@ export function ProdutoFormPage() {
 
   const fragranciaAtual = watch('fragrancia_linha')
 
-  // tamanho depende do formato (ex: Deo Colônia 100ml x Body Spray 200ml da
+  // tamanho depende do formato (ex: Deo Colônia 100ml x Body Splash 200ml da
   // mesma fragrância), então sempre que o formato muda buscamos de novo na base
   useEffect(() => {
     if (!catalogo || isEdit) return
