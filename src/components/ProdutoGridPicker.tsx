@@ -9,7 +9,8 @@ export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) =
   const [busca, setBusca] = useState('')
   const [marcaAtiva, setMarcaAtiva] = useState<'Todos' | (typeof MARCAS)[number]>('Todos')
   const [scannerOpen, setScannerOpen] = useState(false)
-  const { data: produtos } = useProdutos({ nome: busca })
+  const temBusca = busca.trim().length > 0
+  const { data: produtos } = useProdutos({ nome: busca }, temBusca)
 
   const produtosFiltrados = (produtos ?? []).filter(
     (p) => marcaAtiva === 'Todos' || p.marca === marcaAtiva,
@@ -47,24 +48,32 @@ export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) =
         </button>
       </div>
 
-      <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-        {(['Todos', ...MARCAS] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMarcaAtiva(m)}
-            className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${
-              marcaAtiva === m
-                ? 'bg-[var(--cor-primaria)] text-white'
-                : 'bg-white text-neutral-600 ring-1 ring-neutral-200'
-            }`}
-          >
-            {m}
-          </button>
-        ))}
-      </div>
+      {temBusca && (
+        <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+          {(['Todos', ...MARCAS] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMarcaAtiva(m)}
+              className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${
+                marcaAtiva === m
+                  ? 'bg-[var(--cor-primaria)] text-white'
+                  : 'bg-white text-neutral-600 ring-1 ring-neutral-200'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!temBusca && (
+        <p className="py-6 text-center text-sm text-neutral-400">
+          Busque um produto pelo nome ou escaneie o código de barras
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
-        {produtosFiltrados.map((p) => {
+        {temBusca && produtosFiltrados.map((p) => {
           const semEstoque = p.estoque_atual <= 0
           return (
             <button
@@ -100,7 +109,7 @@ export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) =
             </button>
           )
         })}
-        {produtosFiltrados.length === 0 && (
+        {temBusca && produtosFiltrados.length === 0 && (
           <p className="col-span-2 py-6 text-center text-sm text-neutral-400">
             Nenhum produto encontrado.
           </p>

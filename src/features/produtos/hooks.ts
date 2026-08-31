@@ -12,10 +12,11 @@ export function useCatalogoProdutos(enabled: boolean) {
   })
 }
 
-export function useProdutos(filtros: FiltroProdutos = {}) {
+export function useProdutos(filtros: FiltroProdutos = {}, enabled = true) {
   return useQuery({
     queryKey: ['produtos', filtros],
     queryFn: () => api.listarProdutos(filtros),
+    enabled,
   })
 }
 
