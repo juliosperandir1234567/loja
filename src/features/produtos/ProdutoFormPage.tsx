@@ -184,6 +184,40 @@ export function ProdutoFormPage() {
     return unicos.slice(0, 20)
   }, [catalogo, isEdit, nomeAtual, marcaAtual])
 
+  const formatoAtual = watch('formato')
+  const fragranciaAtual = watch('fragrancia_linha')
+
+  // tamanho depende do formato (ex: Deo Colônia 100ml x Body Spray 200ml da
+  // mesma fragrância), então sempre que o formato muda buscamos de novo na base
+  useEffect(() => {
+    if (!catalogo || isEdit) return
+    const nomeNorm = nomeAtual?.trim().toLowerCase()
+    const formatoNorm = formatoAtual?.trim().toLowerCase()
+    if (!nomeNorm || !formatoNorm) return
+    const fragNorm = fragranciaAtual?.trim().toLowerCase()
+
+    const doMesmaFragrancia = fragNorm
+      ? catalogo.find(
+          (c) =>
+            c.marca === marcaAtual &&
+            c.nome.toLowerCase() === nomeNorm &&
+            (c.formato ?? '').toLowerCase() === formatoNorm &&
+            (c.fragrancia_linha ?? '').toLowerCase() === fragNorm,
+        )
+      : undefined
+
+    const match =
+      doMesmaFragrancia ??
+      catalogo.find(
+        (c) =>
+          c.marca === marcaAtual &&
+          c.nome.toLowerCase() === nomeNorm &&
+          (c.formato ?? '').toLowerCase() === formatoNorm,
+      )
+
+    if (match?.tamanho) setValue('tamanho', match.tamanho)
+  }, [catalogo, isEdit, nomeAtual, marcaAtual, formatoAtual, fragranciaAtual, setValue])
+
   async function onSubmit(values: FormValues) {
     setEnviando(true)
     try {
