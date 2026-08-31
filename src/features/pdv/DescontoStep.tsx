@@ -47,8 +47,8 @@ export function DescontoStep({
   const valorFinalKitDigitado =
     valorFinalKitTexto === '' ? null : Number(valorFinalKitTexto.replace(',', '.')) || 0
   const valorFinalKit =
-    itensDoKit.size >= 2 ? (valorFinalKitDigitado ?? subtotalKit) : subtotalKit
-  const numeroDescontoKit = itensDoKit.size >= 2 ? Math.max(0, subtotalKit - valorFinalKit) : 0
+    itensDoKitLista.length >= 2 ? (valorFinalKitDigitado ?? subtotalKit) : subtotalKit
+  const numeroDescontoKit = itensDoKitLista.length >= 2 ? Math.max(0, subtotalKit - valorFinalKit) : 0
   const numeroDescontoGeral = Math.max(0, Number(descontoGeral.replace(',', '.')) || 0)
   const numeroDesconto = numeroDescontoGeral + numeroDescontoKit
   const totalComDesconto = Math.max(0, total - numeroDesconto)
@@ -116,13 +116,17 @@ export function DescontoStep({
         </ul>
       </div>
 
-      {itensDoKit.size >= 2 && (
+      {itensDoKitLista.length >= 2 && (
         <div className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
-          <p className="mb-1 text-sm font-bold text-neutral-700">Kit ({itensDoKit.size} itens marcados)</p>
-          <p className="mb-2 text-xs text-neutral-500">
-            {itensDoKitLista.map((i) => nomeCompleto(i.produto)).join(', ')}
+          <p className="mb-1 text-sm font-bold text-neutral-700">
+            Kit ({itensDoKitLista.length} itens marcados)
           </p>
-          <p className="mb-2 text-sm text-neutral-600">Subtotal do kit: R$ {subtotalKit.toFixed(2)}</p>
+          <p className="mb-2 text-xs text-neutral-500">
+            {itensDoKitLista.map((i) => `${nomeCompleto(i.produto)} #${i.produto.id.slice(-4)}`).join(' | ')}
+          </p>
+          <p className="mb-2 text-sm text-neutral-600">
+            Subtotal do kit ({itensDoKitLista.length} itens somados): R$ {subtotalKit.toFixed(2)}
+          </p>
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-neutral-700">
               Valor final do kit (R$)
@@ -166,7 +170,7 @@ export function DescontoStep({
 
       <div className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
         <div className="flex flex-col gap-1 text-sm">
-          {itensDoKit.size >= 2 ? (
+          {itensDoKitLista.length >= 2 ? (
             <>
               <div className="flex justify-between text-neutral-600">
                 <span>Valor final do kit</span>
