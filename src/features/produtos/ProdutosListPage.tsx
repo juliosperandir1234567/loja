@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useProdutos } from './hooks'
 import { MARCAS, FORMATOS } from './api'
 import { AppShell } from '../../components/layout/AppShell'
+import { BarcodeScannerModal } from '../../components/BarcodeScannerModal'
 
 const TIPOS = ['Masculino', 'Feminino', 'Unissex'] as const
 
@@ -13,12 +14,15 @@ export function ProdutosListPage() {
   const [fragrancia, setFragrancia] = useState('')
   const [tipo, setTipo] = useState('')
   const [formato, setFormato] = useState('')
+  const [codigoBarras, setCodigoBarras] = useState('')
+  const [scannerOpen, setScannerOpen] = useState(false)
   const [marca, setMarca] = useState<'Todos' | (typeof MARCAS)[number]>('Todos')
   const { data: produtosTodos, isLoading } = useProdutos({
     nome: busca,
     fragrancia,
     tipo,
     formato,
+    codigoBarras,
     marca: marca === 'Todos' ? undefined : marca,
   })
   const produtos = somenteComEstoque
@@ -76,6 +80,23 @@ export function ProdutosListPage() {
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="mb-2 flex gap-2">
+          <input
+            type="text"
+            value={codigoBarras}
+            onChange={(e) => setCodigoBarras(e.target.value)}
+            placeholder="Buscar por código de barras..."
+            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => setScannerOpen(true)}
+            className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium"
+          >
+            Escanear
+          </button>
         </div>
 
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
@@ -177,6 +198,15 @@ export function ProdutosListPage() {
           <p className="mt-8 text-center text-neutral-400">Nenhum produto encontrado.</p>
         )}
       </div>
+
+      <BarcodeScannerModal
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onDetected={(codigo) => {
+          setCodigoBarras(codigo)
+          setScannerOpen(false)
+        }}
+      />
     </AppShell>
   )
 }

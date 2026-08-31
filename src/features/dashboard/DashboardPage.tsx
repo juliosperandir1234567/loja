@@ -251,6 +251,12 @@ export function DashboardPage() {
                   valor={`R$ ${estoqueResumo.valorVenda.toFixed(2)}`}
                 />
               </div>
+              <div className="mt-3 rounded-lg bg-green-50 p-3 ring-1 ring-green-200">
+                <p className="text-xs font-medium text-green-800">Lucro potencial (se vender tudo)</p>
+                <p className="text-lg font-semibold text-green-800">
+                  R$ {(estoqueResumo.valorVenda - estoqueResumo.valorCusto).toFixed(2)}
+                </p>
+              </div>
             </div>
 
             <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">

@@ -6,6 +6,7 @@ import { ProdutosListPage } from './features/produtos/ProdutosListPage'
 import { ProdutoFormPage } from './features/produtos/ProdutoFormPage'
 import { PrecosEmMassaPage } from './features/produtos/PrecosEmMassaPage'
 import { EstoqueHomePage } from './features/estoque/EstoqueHomePage'
+import { EstoqueMinimoPage } from './features/estoque/EstoqueMinimoPage'
 import { EntradaEstoquePage } from './features/estoque/EntradaEstoquePage'
 import { SaidaManualPage } from './features/estoque/SaidaManualPage'
 import { AjusteEstoquePage } from './features/estoque/AjusteEstoquePage'
@@ -74,6 +75,14 @@ export default function App() {
           element={
             <ProtectedRoute allow={['admin']}>
               <EstoqueHomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/estoque/minimo"
+          element={
+            <ProtectedRoute allow={['admin']}>
+              <EstoqueMinimoPage />
             </ProtectedRoute>
           }
         />

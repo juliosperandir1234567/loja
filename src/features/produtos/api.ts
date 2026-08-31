@@ -11,6 +11,7 @@ export interface FiltroProdutos {
   tipo?: string
   marca?: string
   formato?: string
+  codigoBarras?: string
 }
 
 export async function listarProdutos(filtros: FiltroProdutos = {}) {
@@ -20,6 +21,7 @@ export async function listarProdutos(filtros: FiltroProdutos = {}) {
   if (filtros.tipo) query = query.eq('tipo', filtros.tipo as TipoProduto)
   if (filtros.marca) query = query.eq('marca', filtros.marca as Marca)
   if (filtros.formato) query = query.eq('formato', filtros.formato)
+  if (filtros.codigoBarras) query = query.eq('codigo_barras', filtros.codigoBarras)
   const { data, error } = await query
   if (error) throw error
   return data

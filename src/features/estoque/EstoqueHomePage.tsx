@@ -67,6 +67,13 @@ export function EstoqueHomePage() {
         >
           Ver produtos em estoque
         </Link>
+
+        <Link
+          to="/estoque/minimo"
+          className="flex items-center justify-center rounded-lg border border-neutral-300 py-2.5 text-sm font-medium text-neutral-700"
+        >
+          Estoque mínimo
+        </Link>
       </div>
     </AppShell>
   )

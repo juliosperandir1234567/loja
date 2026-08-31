@@ -79,7 +79,7 @@ export function ProdutoFormPage() {
     formState: { errors },
   } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { estoque_atual: 0, marca: MARCAS[0] },
+    defaultValues: { estoque_atual: 0, marca: MARCAS[0], estoque_minimo: 1 },
     values: produtoExistente
       ? {
           nome: produtoExistente.nome,
