@@ -312,17 +312,23 @@ export function ProdutoFormPage() {
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-neutral-700">Marca</span>
-          <select
-            {...register('marca')}
+          <span className="mb-1 block text-sm font-medium text-neutral-700">Formato</span>
+          <input
+            {...register('formato')}
+            list="formatos-sugeridos"
+            placeholder="Ex: Deo Colônia, Rollon, Desodorante"
+            autoComplete="off"
             className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
-          >
-            {MARCAS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
+          />
+          <datalist id="formatos-sugeridos">
+            {FORMATOS.map((f) => (
+              <option key={f} value={f} />
             ))}
-          </select>
+          </datalist>
+          <p className="mt-1 text-xs text-neutral-500">
+            Use quando a mesma fragrância existe em mais de uma apresentação (ex: Deo Colônia, Rollon,
+            Desodorante).
+          </p>
         </label>
 
         <label className="block">
@@ -367,47 +373,40 @@ export function ProdutoFormPage() {
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-neutral-700">Formato</span>
+          <span className="mb-1 block text-sm font-medium text-neutral-700">Tamanho</span>
           <input
-            {...register('formato')}
-            list="formatos-sugeridos"
-            placeholder="Ex: Deo Colônia, Rollon, Desodorante"
-            autoComplete="off"
+            {...register('tamanho')}
+            placeholder="Ex: 400ml, 75g"
             className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
           />
-          <datalist id="formatos-sugeridos">
-            {FORMATOS.map((f) => (
-              <option key={f} value={f} />
-            ))}
-          </datalist>
-          <p className="mt-1 text-xs text-neutral-500">
-            Use quando a mesma fragrância existe em mais de uma apresentação (ex: Deo Colônia, Rollon,
-            Desodorante).
-          </p>
         </label>
 
-        <div className="flex gap-3">
-          <label className="block flex-1">
-            <span className="mb-1 block text-sm font-medium text-neutral-700">Tipo</span>
-            <select
-              {...register('tipo')}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
-            >
-              <option value="">Não informado</option>
-              <option value="Masculino">Masculino</option>
-              <option value="Feminino">Feminino</option>
-              <option value="Unissex">Unissex</option>
-            </select>
-          </label>
-          <label className="block flex-1">
-            <span className="mb-1 block text-sm font-medium text-neutral-700">Tamanho</span>
-            <input
-              {...register('tamanho')}
-              placeholder="Ex: 400ml, 75g"
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
-            />
-          </label>
-        </div>
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-neutral-700">Marca</span>
+          <select
+            {...register('marca')}
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+          >
+            {MARCAS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-neutral-700">Tipo</span>
+          <select
+            {...register('tipo')}
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+          >
+            <option value="">Não informado</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Feminino">Feminino</option>
+            <option value="Unissex">Unissex</option>
+          </select>
+        </label>
 
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-neutral-700">Código de barras</span>
