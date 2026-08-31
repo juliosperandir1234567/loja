@@ -66,6 +66,7 @@ export function ProdutoFormPage() {
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
   const [buscandoExterno, setBuscandoExterno] = useState(false)
   const [mostrarSugestoes, setMostrarSugestoes] = useState(false)
+  const [mostrarSugestoesNome, setMostrarSugestoesNome] = useState(false)
   const { data: catalogo } = useCatalogoProdutos(!isEdit)
 
   const {
@@ -78,7 +79,7 @@ export function ProdutoFormPage() {
     formState: { errors },
   } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { estoque_atual: 0 },
+    defaultValues: { estoque_atual: 0, marca: MARCAS[0] },
     values: produtoExistente
       ? {
           nome: produtoExistente.nome,
@@ -166,6 +167,23 @@ export function ProdutoFormPage() {
     return unicos.slice(0, 30)
   }, [catalogo, isEdit, nomeAtual, marcaAtual])
 
+  const sugestoesNome = useMemo(() => {
+    if (!catalogo || isEdit) return []
+    const nomeNorm = nomeAtual?.trim().toLowerCase()
+    if (!nomeNorm || nomeNorm.length < 2) return []
+
+    const vistos = new Set<string>()
+    const unicos: string[] = []
+    for (const c of catalogo) {
+      if (c.marca !== marcaAtual || !c.nome.toLowerCase().includes(nomeNorm)) continue
+      if (vistos.has(c.nome)) continue
+      vistos.add(c.nome)
+      unicos.push(c.nome)
+      if (c.nome.toLowerCase() === nomeNorm) return []
+    }
+    return unicos.slice(0, 20)
+  }, [catalogo, isEdit, nomeAtual, marcaAtual])
+
   async function onSubmit(values: FormValues) {
     setEnviando(true)
     try {
@@ -227,10 +245,35 @@ export function ProdutoFormPage() {
 
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-neutral-700">Nome</span>
-          <input
-            {...register('nome')}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
-          />
+          <div className="relative">
+            <input
+              {...register('nome')}
+              autoComplete="off"
+              onFocus={() => setMostrarSugestoesNome(true)}
+              onBlur={() => setTimeout(() => setMostrarSugestoesNome(false), 150)}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+            />
+            {mostrarSugestoesNome && sugestoesNome.length > 0 && (
+              <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg">
+                {sugestoesNome.map((n) => (
+                  <li key={n}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setValue('nome', n)
+                        setMostrarSugestoesNome(false)
+                        setMostrarSugestoes(true)
+                      }}
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-neutral-50"
+                    >
+                      {n}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           {errors.nome && <p className="mt-1 text-sm text-red-600">{errors.nome.message}</p>}
         </label>
 
