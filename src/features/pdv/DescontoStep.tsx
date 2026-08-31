@@ -40,6 +40,14 @@ export function DescontoStep({
     .filter((i) => itensDoKit.has(i.produto.id))
     .reduce((acc, i) => acc + i.quantidade * precoEfetivo(i.produto), 0)
 
+  // diagnostico: dois itens do carrinho nunca deveriam compartilhar o mesmo id
+  const idsVistos = new Set<string>()
+  const idsDuplicados = new Set<string>()
+  for (const i of itens) {
+    if (idsVistos.has(i.produto.id)) idsDuplicados.add(i.produto.id)
+    idsVistos.add(i.produto.id)
+  }
+
   // aceita "," ou "." como separador decimal (teclado numerico do celular
   // costuma inserir virgula, que <input type="number"> rejeita silenciosamente)
   const numeroDescontoKit =
@@ -52,6 +60,13 @@ export function DescontoStep({
 
   return (
     <div className="flex flex-col gap-4 p-4">
+      {idsDuplicados.size > 0 && (
+        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800 ring-1 ring-red-200">
+          Aviso técnico: {idsDuplicados.size} produto(s) aparecem repetidos no carrinho (mesmo id
+          #{[...idsDuplicados].map((id) => id.slice(-4)).join(', #')}). Isso pode causar
+          inconsistência no kit. Tente remover e adicionar esse item de novo.
+        </div>
+      )}
       <div className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
         <p className="mb-2 text-sm font-bold text-neutral-700">
           {itens.reduce((acc, i) => acc + i.quantidade, 0)} item(ns) nesta venda
@@ -91,7 +106,10 @@ export function DescontoStep({
                     >
                       {noKit && '✓'}
                     </span>
-                    <span className="truncate">{nomeCompleto(i.produto)}</span>
+                    <span className="truncate">
+                      {nomeCompleto(i.produto)}{' '}
+                      <span className="text-neutral-400">#{i.produto.id.slice(-4)}</span>
+                    </span>
                   </span>
                   <span className="shrink-0 font-medium text-neutral-900">
                     R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
