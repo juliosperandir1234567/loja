@@ -17,7 +17,6 @@ import {
   type FiltroMarca,
 } from './hooks'
 import { calcularPeriodo, type TipoPeriodo, type Periodo } from './periodo'
-import { useProdutosEstoqueBaixo } from '../estoque/hooks'
 import { useAniversariantesDaSemana } from '../fiado/hooks'
 import { useBoletos } from '../boletos/hooks'
 import { BalancoMensalSection } from './BalancoMensalSection'
@@ -69,7 +68,6 @@ export function DashboardPage() {
   }, [tipoPeriodo, personalizadoDesde, personalizadoAte])
 
   const { kpis, isLoading, vendas, itens } = useDashboardKpis(periodo, filtroMarca)
-  const { data: estoqueBaixo } = useProdutosEstoqueBaixo()
   const { data: aniversariantes } = useAniversariantesDaSemana()
   const { data: boletos } = useBoletos()
   const { data: pagamentosFiadoPeriodo } = usePagamentosFiadoPeriodo(periodo)
@@ -327,15 +325,6 @@ export function DashboardPage() {
                 className="rounded-xl bg-pink-50 p-3 text-sm font-medium text-pink-900 ring-1 ring-pink-200"
               >
                 🎂 {aniversariantes.length} cliente(s) fazem aniversário essa semana
-              </Link>
-            )}
-
-            {estoqueBaixo && estoqueBaixo.length > 0 && (
-              <Link
-                to="/estoque"
-                className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-900 ring-1 ring-red-200"
-              >
-                ⚠️ {estoqueBaixo.length} produto(s) com estoque baixo
               </Link>
             )}
 

@@ -91,10 +91,17 @@ export function ProdutosListPage() {
 
         <Link
           to="/produtos/precos"
-          className="mb-4 flex items-center justify-center rounded-lg border border-neutral-300 py-2.5 text-sm font-medium text-neutral-700"
+          className="mb-2 flex items-center justify-center rounded-lg border border-neutral-300 py-2.5 text-sm font-medium text-neutral-700"
         >
           Preços em massa
         </Link>
+
+        {!isLoading && (
+          <p className="mb-2 text-sm text-neutral-500">
+            {produtos?.length ?? 0} produto{produtos?.length === 1 ? '' : 's'} cadastrado
+            {produtos?.length === 1 ? '' : 's'}
+          </p>
+        )}
 
         {isLoading && <p className="text-neutral-400">Carregando...</p>}
 

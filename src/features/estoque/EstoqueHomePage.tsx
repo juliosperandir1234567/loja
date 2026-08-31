@@ -1,9 +1,18 @@
 import { Link } from 'react-router-dom'
 import { AppShell } from '../../components/layout/AppShell'
-import { useProdutosEstoqueBaixo } from './hooks'
+import { useEstoqueResumo } from '../dashboard/hooks'
+
+function StatCard({ label, valor }: { label: string; valor: string }) {
+  return (
+    <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
+      <p className="text-xs text-neutral-500">{label}</p>
+      <p className="text-lg font-semibold text-neutral-900">{valor}</p>
+    </div>
+  )
+}
 
 export function EstoqueHomePage() {
-  const { data: estoqueBaixo, isLoading } = useProdutosEstoqueBaixo()
+  const { isLoading, totalUnidades, valorCusto, valorVenda } = useEstoqueResumo()
 
   return (
     <AppShell title="Estoque">
@@ -30,27 +39,24 @@ export function EstoqueHomePage() {
         </div>
 
         <div>
-          <h2 className="mb-2 text-sm font-medium text-neutral-700">Alerta de estoque baixo</h2>
-          {isLoading && <p className="text-neutral-400">Carregando...</p>}
-          <ul className="flex flex-col gap-2">
-            {estoqueBaixo?.map((p) => (
-              <li key={p.id}>
-                <Link
-                  to={`/estoque/historico/${p.id}`}
-                  className="flex items-center justify-between rounded-xl bg-red-50 p-3 ring-1 ring-red-200"
-                >
-                  <span className="font-medium text-red-900">{p.nome}</span>
-                  <span className="text-sm font-medium text-red-700">
-                    {p.estoque_atual} / mín. {p.estoque_minimo}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {!isLoading && estoqueBaixo?.length === 0 && (
-            <p className="text-sm text-neutral-400">Nenhum produto com estoque baixo.</p>
+          <h2 className="mb-2 text-sm font-medium text-neutral-700">Estoque atual</h2>
+          {isLoading ? (
+            <p className="text-neutral-400">Carregando...</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              <StatCard label="Unidades" valor={String(totalUnidades)} />
+              <StatCard label="Valor (custo)" valor={`R$ ${valorCusto.toFixed(2)}`} />
+              <StatCard label="Valor (venda)" valor={`R$ ${valorVenda.toFixed(2)}`} />
+            </div>
           )}
         </div>
+
+        <Link
+          to="/produtos"
+          className="flex items-center justify-center rounded-lg border border-neutral-300 py-2.5 text-sm font-medium text-neutral-700"
+        >
+          Ver produtos cadastrados
+        </Link>
       </div>
     </AppShell>
   )
