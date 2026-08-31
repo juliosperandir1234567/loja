@@ -48,18 +48,19 @@ export function ProdutosListPage() {
           </Link>
         </div>
 
+        <input
+          type="text"
+          value={fragrancia}
+          onChange={(e) => setFragrancia(e.target.value)}
+          placeholder="Buscar por fragrância..."
+          className="mb-2 w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+        />
+
         <div className="mb-2 flex gap-2">
-          <input
-            type="text"
-            value={fragrancia}
-            onChange={(e) => setFragrancia(e.target.value)}
-            placeholder="Buscar por fragrância..."
-            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
-          />
           <select
             value={tipo}
             onChange={(e) => setTipo(e.target.value)}
-            className="rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+            className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
           >
             <option value="">Todos os tipos</option>
             {TIPOS.map((t) => (
@@ -71,7 +72,7 @@ export function ProdutosListPage() {
           <select
             value={formato}
             onChange={(e) => setFormato(e.target.value)}
-            className="rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+            className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
           >
             <option value="">Todos os formatos</option>
             {FORMATOS.map((f) => (
@@ -88,12 +89,12 @@ export function ProdutosListPage() {
             value={codigoBarras}
             onChange={(e) => setCodigoBarras(e.target.value)}
             placeholder="Buscar por código de barras..."
-            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
+            className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-base focus:border-neutral-900 focus:outline-none"
           />
           <button
             type="button"
             onClick={() => setScannerOpen(true)}
-            className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium"
+            className="shrink-0 rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium"
           >
             Escanear
           </button>
