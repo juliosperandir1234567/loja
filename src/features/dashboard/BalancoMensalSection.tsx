@@ -66,10 +66,9 @@ export function BalancoMensalSection({
     }
 
     for (const b of boletos) {
-      if (b.status !== 'pago' || !b.data_pagamento) continue
       const chave = fornecedorCanonico(b.fornecedor)
       if (!fornecedoresPermitidos.has(chave)) continue
-      const data = new Date(b.data_pagamento)
+      const data = new Date(b.vencimento)
       if (data.getFullYear() !== ano) continue
       const m = data.getMonth()
       if (!base[m].porFornecedor[chave]) base[m].porFornecedor[chave] = fornecedorVazio()
