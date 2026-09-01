@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import * as api from './api'
 import { calcularPeriodoAnterior, type Periodo } from './periodo'
@@ -87,6 +87,20 @@ export function useItensAno(ano: number) {
     queryKey: ['dashboard', 'itens-ano', ano],
     queryFn: () => api.listarItensAno(ano),
   })
+}
+
+export function useItensAnos(anos: number[]) {
+  const resultados = useQueries({
+    queries: anos.map((ano) => ({
+      queryKey: ['dashboard', 'itens-ano', ano],
+      queryFn: () => api.listarItensAno(ano),
+    })),
+  })
+
+  return {
+    data: resultados.flatMap((r) => r.data ?? []),
+    isLoading: resultados.some((r) => r.isLoading),
+  }
 }
 
 export interface KpisDashboard {

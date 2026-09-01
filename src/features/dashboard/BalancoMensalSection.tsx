@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react'
-import { useItensAno, type FiltroMarca } from './hooks'
+import { useItensAnos, type FiltroMarca } from './hooks'
 import { MARCAS_FIXAS, fornecedorCanonico } from './fornecedor'
 import { CompraVendaChart } from './CompraVendaChart'
 import type { BoletoCompra } from '../boletos/api'
@@ -36,9 +36,27 @@ export function BalancoMensalSection({
 }) {
   const anoAtual = new Date().getFullYear()
   const mesAtual = new Date().getMonth()
-  const [ano, setAno] = useState(anoAtual)
+  const [anosSelecionados, setAnosSelecionados] = useState<number[]>([anoAtual])
   const [somenteVendas, setSomenteVendas] = useState(false)
-  const { data: itensAno, isLoading } = useItensAno(ano)
+  const { data: itensAno, isLoading } = useItensAnos(anosSelecionados)
+
+  const anosDisponiveis = useMemo(() => {
+    const anosComBoleto = boletos.map((b) => new Date(b.vencimento).getFullYear())
+    const anos = new Set([anoAtual, anoAtual - 1, anoAtual - 2, ...anosComBoleto, ...anosSelecionados])
+    return Array.from(anos).sort((a, b) => b - a)
+  }, [boletos, anoAtual, anosSelecionados])
+
+  const anosLabel = [...anosSelecionados].sort((a, b) => a - b).join(', ')
+
+  function alternarAno(a: number) {
+    setAnosSelecionados((atual) => {
+      if (atual.includes(a)) {
+        if (atual.length === 1) return atual
+        return atual.filter((x) => x !== a)
+      }
+      return [...atual, a]
+    })
+  }
 
   const fornecedores = useMemo(() => {
     if (filtroMarca !== 'todos') return [filtroMarca]
@@ -71,7 +89,7 @@ export function BalancoMensalSection({
       const chave = fornecedorCanonico(b.fornecedor)
       if (!fornecedoresPermitidos.has(chave)) continue
       const data = new Date(b.vencimento)
-      if (data.getFullYear() !== ano) continue
+      if (!anosSelecionados.includes(data.getFullYear())) continue
       const m = data.getMonth()
       if (!base[m].porFornecedor[chave]) base[m].porFornecedor[chave] = fornecedorVazio()
       base[m].porFornecedor[chave].boleto += Number(b.valor)
@@ -83,7 +101,7 @@ export function BalancoMensalSection({
     }
 
     return base
-  }, [itensAno, boletos, ano, fornecedores])
+  }, [itensAno, boletos, anosSelecionados, fornecedores])
 
   const totalAnoPorFornecedor = useMemo(() => {
     const totais: Record<string, DadosFornecedorMes> = Object.fromEntries(
@@ -116,24 +134,30 @@ export function BalancoMensalSection({
             <option value="tudo">Vendas e boletos</option>
             <option value="vendas">Somente vendas</option>
           </select>
-          <select
-            value={ano}
-            onChange={(e) => setAno(Number(e.target.value))}
-            className="rounded-lg border border-neutral-300 px-2 py-1 text-xs focus:outline-none"
-          >
-            {[anoAtual, anoAtual - 1, anoAtual - 2].map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
+          <details className="relative">
+            <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer rounded-lg border border-neutral-300 px-2 py-1 text-xs focus:outline-none">
+              {anosLabel}
+            </summary>
+            <div className="absolute right-0 z-10 mt-1 flex flex-col gap-1 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg">
+              {anosDisponiveis.map((a) => (
+                <label key={a} className="flex items-center gap-2 whitespace-nowrap text-xs text-neutral-700">
+                  <input
+                    type="checkbox"
+                    checked={anosSelecionados.includes(a)}
+                    onChange={() => alternarAno(a)}
+                  />
+                  {a}
+                </label>
+              ))}
+            </div>
+          </details>
         </div>
       </div>
 
       {isLoading && <p className="text-sm text-neutral-400">Carregando...</p>}
 
       <div className="mb-3 flex flex-col gap-2 rounded-lg bg-green-50 p-3 ring-1 ring-green-200">
-        <p className="text-xs font-medium text-green-900">Saldo total — {ano}</p>
+        <p className="text-xs font-medium text-green-900">Saldo total — {anosLabel}</p>
         {fornecedores.map((f) => {
           const d = totalAnoPorFornecedor.porFornecedor[f]
           if (!d || (d.venda === 0 && d.boleto === 0)) return null
@@ -195,7 +219,7 @@ export function BalancoMensalSection({
               <tr
                 key={l.mes}
                 className={`border-t border-neutral-100 ${
-                  ano === anoAtual && l.mes === mesAtual ? 'bg-green-50' : ''
+                  anosSelecionados.includes(anoAtual) && l.mes === mesAtual ? 'bg-green-50' : ''
                 }`}
               >
                 <td className="py-1 pr-2 text-neutral-700">{MESES[l.mes]}</td>
@@ -230,7 +254,7 @@ export function BalancoMensalSection({
           </tbody>
           <tfoot>
             <tr className="border-t border-neutral-300 font-semibold text-neutral-900">
-              <td className="py-1 pr-2">Total {ano}</td>
+              <td className="py-1 pr-2">Total {anosLabel}</td>
               {fornecedores.map((f) => {
                 const d = totalAnoPorFornecedor.porFornecedor[f] ?? fornecedorVazio()
                 return (
@@ -263,7 +287,7 @@ export function BalancoMensalSection({
       </div>
 
       <div className="mt-4 border-t border-neutral-200 pt-3">
-        <h3 className="mb-2 text-xs font-medium text-neutral-700">Compra x Venda — {ano}</h3>
+        <h3 className="mb-2 text-xs font-medium text-neutral-700">Compra x Venda — {anosLabel}</h3>
         <CompraVendaChart
           dados={linhas.map((l) => ({
             mes: MESES[l.mes],
