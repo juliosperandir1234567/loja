@@ -395,7 +395,13 @@ export function DashboardPage() {
               )}
             </div>
 
-            <BalancoMensalSection boletos={boletos ?? []} filtroMarca={filtroMarca} />
+            <BalancoMensalSection
+              boletos={boletos ?? []}
+              filtroMarca={filtroMarca}
+              saldoCaixaPorFornecedor={Object.fromEntries(
+                financeiroPorMarca.map((f) => [f.marca, f.caixa + f.conta]),
+              )}
+            />
 
             {aniversariantes && aniversariantes.length > 0 && (
               <Link

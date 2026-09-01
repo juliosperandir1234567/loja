@@ -28,9 +28,11 @@ function fornecedorVazio(): DadosFornecedorMes {
 export function BalancoMensalSection({
   boletos,
   filtroMarca,
+  saldoCaixaPorFornecedor,
 }: {
   boletos: BoletoCompra[]
   filtroMarca: FiltroMarca
+  saldoCaixaPorFornecedor: Record<string, number>
 }) {
   const anoAtual = new Date().getFullYear()
   const mesAtual = new Date().getMonth()
@@ -135,7 +137,8 @@ export function BalancoMensalSection({
         {fornecedores.map((f) => {
           const d = totalAnoPorFornecedor.porFornecedor[f]
           if (!d || (d.venda === 0 && d.boleto === 0)) return null
-          const total = d.venda - d.boleto
+          const caixaConta = saldoCaixaPorFornecedor[f] ?? 0
+          const total = caixaConta + d.venda - d.boleto
           return (
             <div key={f} className="border-t border-green-200 pt-2 text-sm text-green-900 first:border-t-0 first:pt-0">
               <p className="font-semibold">{f}</p>
@@ -148,10 +151,16 @@ export function BalancoMensalSection({
                 <span>R$ {d.venda.toFixed(2)}</span>
               </div>
               {!somenteVendas && (
-                <div className={`flex justify-between font-semibold ${total >= 0 ? '' : 'text-red-700'}`}>
-                  <span>Total</span>
-                  <span>R$ {total.toFixed(2)}</span>
-                </div>
+                <>
+                  <div className="flex justify-between">
+                    <span>Caixa + conta (saldo real)</span>
+                    <span>R$ {caixaConta.toFixed(2)}</span>
+                  </div>
+                  <div className={`flex justify-between font-semibold ${total >= 0 ? '' : 'text-red-700'}`}>
+                    <span>Total</span>
+                    <span>R$ {total.toFixed(2)}</span>
+                  </div>
+                </>
               )}
             </div>
           )
