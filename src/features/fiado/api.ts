@@ -6,7 +6,7 @@ export async function listarFiadosAbertos() {
     .from('saldo_fiado_cliente')
     .select('*')
     .gt('saldo_devedor', 0)
-    .order('saldo_devedor', { ascending: false })
+    .order('nome')
   if (error) throw error
   return data
 }

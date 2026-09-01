@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { AppShell } from '../../components/layout/AppShell'
 import { ConfirmDeleteModal } from '../../components/ConfirmDeleteModal'
+import { MARCAS_FIXAS, fornecedorCanonico } from '../dashboard/fornecedor'
 import {
   useBoletos,
   useCriarBoletoParcelado,
@@ -10,6 +11,8 @@ import {
   useAtualizarVencimentoBoleto,
   useDeletarBoletos,
 } from './hooks'
+
+const ABAS_FORNECEDOR = ['todos', ...MARCAS_FIXAS] as const
 
 export function BoletosPage() {
   const { data: boletos, isLoading } = useBoletos()
@@ -27,9 +30,23 @@ export function BoletosPage() {
   const [primeiroVencimento, setPrimeiroVencimento] = useState('')
   const [editandoVencimentoId, setEditandoVencimentoId] = useState<string | null>(null)
   const [novoVencimento, setNovoVencimento] = useState('')
+  const [filtroFornecedor, setFiltroFornecedor] = useState<(typeof ABAS_FORNECEDOR)[number]>('todos')
+  const [filtroMes, setFiltroMes] = useState('')
+  const [filtroDescricao, setFiltroDescricao] = useState('')
 
-  const pendentes = (boletos ?? []).filter((b) => b.status === 'pendente')
-  const pagos = (boletos ?? []).filter((b) => b.status === 'pago')
+  const boletosFiltrados = (boletos ?? []).filter((b) => {
+    if (filtroFornecedor !== 'todos' && fornecedorCanonico(b.fornecedor) !== filtroFornecedor) {
+      return false
+    }
+    if (filtroMes && b.vencimento.slice(0, 7) !== filtroMes) return false
+    if (filtroDescricao && !(b.descricao ?? '').toLowerCase().includes(filtroDescricao.toLowerCase())) {
+      return false
+    }
+    return true
+  })
+
+  const pendentes = boletosFiltrados.filter((b) => b.status === 'pendente')
+  const pagos = boletosFiltrados.filter((b) => b.status === 'pago')
   const totalPendente = pendentes.reduce((acc, b) => acc + Number(b.valor), 0)
 
   const numeroTotal = Number(valorTotal)
@@ -201,6 +218,51 @@ export function BoletosPage() {
             </div>
           </div>
         )}
+
+        <div className="flex flex-col gap-2 rounded-xl bg-white p-3 ring-1 ring-neutral-200">
+          <div className="flex gap-2">
+            {ABAS_FORNECEDOR.map((f) => (
+              <button
+                key={f}
+                onClick={() => setFiltroFornecedor(f)}
+                className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${
+                  filtroFornecedor === f
+                    ? 'bg-[var(--cor-primaria)] text-white'
+                    : 'bg-white text-neutral-600 ring-1 ring-neutral-200'
+                }`}
+              >
+                {f === 'todos' ? 'Todos' : f}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="month"
+              value={filtroMes}
+              onChange={(e) => setFiltroMes(e.target.value)}
+              className="flex-1 rounded-lg border border-neutral-300 px-2 py-1.5 text-xs focus:outline-none"
+            />
+            <input
+              type="text"
+              value={filtroDescricao}
+              onChange={(e) => setFiltroDescricao(e.target.value)}
+              placeholder="Buscar por descrição..."
+              className="flex-[2] rounded-lg border border-neutral-300 px-2 py-1.5 text-xs focus:outline-none"
+            />
+            {(filtroFornecedor !== 'todos' || filtroMes || filtroDescricao) && (
+              <button
+                onClick={() => {
+                  setFiltroFornecedor('todos')
+                  setFiltroMes('')
+                  setFiltroDescricao('')
+                }}
+                className="rounded-lg border border-neutral-300 px-2 py-1.5 text-xs font-medium text-neutral-600"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+        </div>
 
         {isLoading && <p className="text-neutral-400">Carregando...</p>}
 
