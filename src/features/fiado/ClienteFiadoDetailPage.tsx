@@ -197,12 +197,20 @@ export function ClienteFiadoDetailPage() {
   }
 
   function mensagemWhatsApp(r: Recibo) {
-    let msg = `*Espaço Sperandir*\nRecebemos seu pagamento de R$ ${r.valorPago.toFixed(2)}.\n\nItens acertados:\n${r.itens.join('\n')}`
-    msg +=
+    const linhas = [
+      '*Espaço Sperandir*',
+      'Comprovante de Pagamento — Venda a Prazo',
+      '',
+      `Cliente: ${cliente?.nome ?? ''}`,
+      `Telefone: ${cliente?.telefone ?? ''}`,
+      `Data do pagamento: ${format(new Date(r.dataHora), 'dd/MM/yyyy HH:mm')}`,
+      '',
+      `Valor pago: R$ ${r.valorPago.toFixed(2)}`,
       r.saldoRestante > 0
-        ? `\n\nSaldo restante em aberto: R$ ${r.saldoRestante.toFixed(2)}`
-        : `\n\nSua conta a prazo está totalmente quitada. Obrigado!`
-    return msg
+        ? `Saldo restante em aberto: R$ ${r.saldoRestante.toFixed(2)}`
+        : 'Conta a prazo totalmente quitada.',
+    ]
+    return linhas.join('\n')
   }
 
   if (recibo) {
