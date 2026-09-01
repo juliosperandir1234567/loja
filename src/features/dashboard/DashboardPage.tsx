@@ -96,8 +96,57 @@ export function DashboardPage() {
     return { marca, boletoPendente, prazoAberto, total: prazoAberto - boletoPendente }
   })
 
+  const caixaContaPorMarca = useMemo(() => {
+    const base: Record<string, { caixa: number; conta: number }> = Object.fromEntries(
+      MARCAS_FIXAS.map((m) => [m, { caixa: 0, conta: 0 }]),
+    )
+
+    // vendas diretas: cada item já sabe sua marca e a forma de pagamento da venda
+    for (const i of itens) {
+      const bucket = base[i.produto_marca]
+      if (!bucket) continue
+      if (i.forma_pagamento === 'dinheiro') bucket.caixa += Number(i.subtotal)
+      else if (i.forma_pagamento === 'pix' || i.forma_pagamento === 'cartao') bucket.conta += Number(i.subtotal)
+    }
+
+    // subtotal por venda e marca, usado pra ratear pagamentos sem item específico
+    // (entrada lançada na hora da venda) proporcionalmente entre as marcas da venda
+    const subtotalPorVendaEMarca = new Map<string, Map<string, number>>()
+    for (const i of itens) {
+      const mapaMarca = subtotalPorVendaEMarca.get(i.venda_id) ?? new Map<string, number>()
+      mapaMarca.set(i.produto_marca, (mapaMarca.get(i.produto_marca) ?? 0) + Number(i.subtotal))
+      subtotalPorVendaEMarca.set(i.venda_id, mapaMarca)
+    }
+
+    for (const p of pagamentosFiadoPeriodo ?? []) {
+      const bucketNome =
+        p.forma_recebimento === 'dinheiro'
+          ? 'caixa'
+          : p.forma_recebimento === 'pix' || p.forma_recebimento === 'cartao'
+            ? 'conta'
+            : null
+      if (!bucketNome) continue
+
+      if (p.produto_marca) {
+        if (base[p.produto_marca]) base[p.produto_marca][bucketNome] += Number(p.valor_pago)
+        continue
+      }
+
+      const mapaMarca = subtotalPorVendaEMarca.get(p.venda_id)
+      if (!mapaMarca) continue
+      const total = Array.from(mapaMarca.values()).reduce((a, b) => a + b, 0)
+      if (total <= 0) continue
+      for (const [marca, subtotal] of mapaMarca) {
+        if (!base[marca]) continue
+        base[marca][bucketNome] += (subtotal / total) * Number(p.valor_pago)
+      }
+    }
+
+    return base
+  }, [itens, pagamentosFiadoPeriodo])
+
   const caixaVendasDiretas = (kpis?.porFormaPagamento ?? [])
-    .filter((p) => p.forma === 'a_vista' || p.forma === 'cartao')
+    .filter((p) => p.forma === 'dinheiro' || p.forma === 'pix' || p.forma === 'cartao')
     .reduce((acc, p) => acc + p.valor, 0)
   // inclui entradas e pagamentos de vendas a prazo recebidos no período — antes esse
   // dinheiro não entrava no caixa mesmo já tendo sido recebido de fato.
@@ -285,6 +334,27 @@ export function DashboardPage() {
             </div>
 
             <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
+              <h2 className="mb-1 text-sm font-medium text-neutral-700">Caixa e conta por fornecedor</h2>
+              <p className="mb-3 text-xs text-neutral-400">
+                Dinheiro cai no caixa, PIX e cartão caem na conta — no período selecionado
+              </p>
+              <div className="flex flex-col gap-3">
+                {MARCAS_FIXAS.map((marca) => {
+                  const d = caixaContaPorMarca[marca] ?? { caixa: 0, conta: 0 }
+                  return (
+                    <div key={marca}>
+                      <p className="mb-1.5 text-xs font-medium text-neutral-500">{marca}</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <StatCard label="Caixa (dinheiro)" valor={`R$ ${d.caixa.toFixed(2)}`} />
+                        <StatCard label="Conta (PIX/cartão)" valor={`R$ ${d.conta.toFixed(2)}`} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
               <h2 className="mb-3 text-sm font-medium text-neutral-700">Estoque atual</h2>
               <div className="grid grid-cols-3 gap-3">
                 <StatCard label="Unidades" valor={String(estoqueResumo.totalUnidades)} />
@@ -436,7 +506,8 @@ export function DashboardPage() {
                     className="rounded-lg border border-neutral-300 px-2 py-1 text-xs focus:outline-none"
                   >
                     <option value="todas">Todas</option>
-                    <option value="a_vista">À vista</option>
+                    <option value="dinheiro">Dinheiro</option>
+                    <option value="pix">PIX</option>
                     <option value="cartao">Cartão</option>
                     <option value="fiado">A prazo</option>
                   </select>

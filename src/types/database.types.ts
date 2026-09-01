@@ -2,7 +2,8 @@ export type Role = 'admin' | 'vendedor'
 export type Marca = 'Natura' | 'Boticário'
 export type TipoProduto = 'Masculino' | 'Feminino' | 'Unissex'
 export type TipoMovimentacao = 'entrada' | 'saida_manual' | 'venda' | 'ajuste' | 'estoque_inicial'
-export type FormaPagamento = 'a_vista' | 'cartao' | 'fiado'
+export type FormaPagamento = 'dinheiro' | 'pix' | 'cartao' | 'fiado'
+export type FormaRecebimento = 'dinheiro' | 'pix' | 'cartao'
 export type StatusVenda = 'pago' | 'pendente' | 'cancelada'
 
 export interface Database {
@@ -290,6 +291,7 @@ export interface Database {
           valor_pago: number
           registrado_por: string
           item_id: string | null
+          forma_recebimento: FormaRecebimento
           criado_em: string
         }
         Insert: never
@@ -444,12 +446,14 @@ export interface Database {
           p_desconto?: number
           p_valor_entrada?: number
           p_combinacao?: string | null
+          p_forma_recebimento_entrada?: FormaRecebimento | null
         }
         Returns: Database['public']['Tables']['vendas']['Row']
       }
       registrar_pagamento_fiado_itens: {
         Args: {
           p_pagamentos: { item_id: string; valor: number }[]
+          p_forma_recebimento: FormaRecebimento
         }
         Returns: Database['public']['Tables']['pagamentos_fiado']['Row'][]
       }

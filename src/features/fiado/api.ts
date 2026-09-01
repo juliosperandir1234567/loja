@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabaseClient'
+import type { FormaRecebimento } from '../../types/database.types'
 
 export async function listarFiadosAbertos() {
   const { data, error } = await supabase
@@ -40,9 +41,13 @@ export async function listarHistoricoVendasCliente(clienteId: string) {
   return data
 }
 
-export async function registrarPagamentoItens(pagamentos: { itemId: string; valor: number }[]) {
+export async function registrarPagamentoItens(
+  pagamentos: { itemId: string; valor: number }[],
+  formaRecebimento: FormaRecebimento,
+) {
   const { data, error } = await supabase.rpc('registrar_pagamento_fiado_itens', {
     p_pagamentos: pagamentos.map((p) => ({ item_id: p.itemId, valor: p.valor })),
+    p_forma_recebimento: formaRecebimento,
   })
   if (error) throw error
   return data

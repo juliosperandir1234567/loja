@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabaseClient'
-import type { Database, FormaPagamento } from '../../types/database.types'
+import type { Database, FormaPagamento, FormaRecebimento } from '../../types/database.types'
 
 export type Venda = Database['public']['Tables']['vendas']['Row']
 
@@ -16,6 +16,7 @@ export interface FinalizarVendaParams {
   desconto?: number
   valorEntrada?: number
   combinacao?: string | null
+  formaRecebimentoEntrada?: FormaRecebimento | null
 }
 
 function dataUrlParaBlob(dataUrl: string) {
@@ -46,6 +47,7 @@ export async function finalizarVenda(params: FinalizarVendaParams): Promise<Vend
     p_desconto: params.desconto ?? 0,
     p_valor_entrada: params.valorEntrada ?? 0,
     p_combinacao: params.combinacao ?? null,
+    p_forma_recebimento_entrada: params.formaRecebimentoEntrada ?? null,
   })
   if (error) throw error
   return data

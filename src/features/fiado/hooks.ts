@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as api from './api'
+import type { FormaRecebimento } from '../../types/database.types'
 
 export function useFiadosAbertos() {
   return useQuery({
@@ -34,7 +35,10 @@ export function useHistoricoVendasCliente(clienteId: string | undefined) {
 export function useRegistrarPagamentoItens() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: api.registrarPagamentoItens,
+    mutationFn: (params: {
+      pagamentos: { itemId: string; valor: number }[]
+      formaRecebimento: FormaRecebimento
+    }) => api.registrarPagamentoItens(params.pagamentos, params.formaRecebimento),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiados-abertos'] })
       queryClient.invalidateQueries({ queryKey: ['fiado-itens-pendentes'] })

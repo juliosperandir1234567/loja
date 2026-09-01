@@ -104,7 +104,8 @@ export interface KpisDashboard {
 }
 
 const LABEL_FORMA: Record<FormaPagamento, string> = {
-  a_vista: 'À vista',
+  dinheiro: 'Dinheiro',
+  pix: 'PIX',
   cartao: 'Cartão',
   fiado: 'A prazo',
 }

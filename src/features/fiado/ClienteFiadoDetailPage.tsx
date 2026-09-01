@@ -13,6 +13,7 @@ import { buscarSaldoCliente } from './api'
 import { buscarConfiguracoes } from '../configuracoes/api'
 import { gerarPdfPagamento } from './pdfPagamento'
 import { abrirWhatsApp } from '../../utils/whatsapp'
+import type { FormaRecebimento } from '../../types/database.types'
 
 interface Recibo {
   valorPago: number
@@ -22,10 +23,17 @@ interface Recibo {
 }
 
 const FORMA_LABEL: Record<string, string> = {
-  a_vista: 'À vista',
+  dinheiro: 'Dinheiro',
+  pix: 'PIX',
   cartao: 'Cartão',
   fiado: 'A prazo',
 }
+
+const OPCOES_RECEBIMENTO: { valor: FormaRecebimento; label: string }[] = [
+  { valor: 'dinheiro', label: 'Dinheiro' },
+  { valor: 'pix', label: 'PIX' },
+  { valor: 'cartao', label: 'Cartão' },
+]
 
 export function ClienteFiadoDetailPage() {
   const { id } = useParams()
@@ -43,6 +51,7 @@ export function ClienteFiadoDetailPage() {
   const [mostrarHistorico, setMostrarHistorico] = useState(false)
   const [valorParcial, setValorParcial] = useState('')
   const [pagandoParcial, setPagandoParcial] = useState(false)
+  const [formaRecebimento, setFormaRecebimento] = useState<FormaRecebimento>('dinheiro')
 
   const porVenda = useMemo(() => {
     const mapa = new Map<string, typeof itens>()
@@ -106,7 +115,7 @@ export function ClienteFiadoDetailPage() {
       return
     }
     try {
-      await registrarItens.mutateAsync(pagamentos)
+      await registrarItens.mutateAsync({ pagamentos, formaRecebimento })
       const saldoRestante = await buscarSaldoCliente(id!)
       setRecibo({
         valorPago: pagamentos.reduce((acc, p) => acc + p.valor, 0),
@@ -264,6 +273,28 @@ export function ClienteFiadoDetailPage() {
 
         {!isLoading && porVenda.length === 0 && (
           <p className="text-sm text-neutral-400">Nenhuma compra em aberto.</p>
+        )}
+
+        {totalEmAberto > 0 && (
+          <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
+            <p className="mb-2 text-sm font-medium text-neutral-700">Forma de recebimento</p>
+            <div className="flex gap-2">
+              {OPCOES_RECEBIMENTO.map((op) => (
+                <button
+                  key={op.valor}
+                  type="button"
+                  onClick={() => setFormaRecebimento(op.valor)}
+                  className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
+                    formaRecebimento === op.valor
+                      ? 'border-neutral-900 bg-[var(--cor-primaria)] text-white'
+                      : 'border-neutral-300 bg-white text-neutral-900'
+                  }`}
+                >
+                  {op.label}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {totalEmAberto > 0 && (

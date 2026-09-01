@@ -5,7 +5,7 @@ import { ProdutoGridPicker } from '../../components/ProdutoGridPicker'
 import type { Produto } from '../produtos/api'
 import { precoEfetivo, nomeCompleto } from '../produtos/api'
 import type { Cliente } from '../clientes/api'
-import type { FormaPagamento } from '../../types/database.types'
+import type { FormaPagamento, FormaRecebimento } from '../../types/database.types'
 import type { Venda } from './api'
 import { useFinalizarVenda } from './hooks'
 import { DescontoStep } from './DescontoStep'
@@ -31,6 +31,7 @@ interface PagamentoEscolhido {
   desconto: number
   valorEntrada: number
   combinacao: string | null
+  formaRecebimentoEntrada: FormaRecebimento | null
 }
 
 export function PdvPage() {
@@ -108,6 +109,7 @@ export function PdvPage() {
         desconto: pagamento.desconto,
         valorEntrada: pagamento.valorEntrada,
         combinacao: pagamento.combinacao,
+        formaRecebimentoEntrada: pagamento.formaRecebimentoEntrada,
       })
       setVendaFinalizada(venda)
       setAssinaturaDataUrl(dataUrl)

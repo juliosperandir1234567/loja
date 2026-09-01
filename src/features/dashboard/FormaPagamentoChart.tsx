@@ -3,7 +3,8 @@ import type { FormaPagamento } from '../../types/database.types'
 import { LABEL_FORMA } from './hooks'
 
 const CORES: Record<FormaPagamento, string> = {
-  a_vista: '#16a34a',
+  dinheiro: '#16a34a',
+  pix: '#0d9488',
   cartao: '#2563eb',
   fiado: '#dc2626',
 }

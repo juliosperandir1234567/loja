@@ -2,13 +2,20 @@ import { useState } from 'react'
 import { ClientePicker } from '../../components/ClientePicker'
 import { precoEfetivo, nomeCompleto } from '../produtos/api'
 import type { Cliente } from '../clientes/api'
-import type { FormaPagamento } from '../../types/database.types'
+import type { FormaPagamento, FormaRecebimento } from '../../types/database.types'
 import type { CarrinhoItem, KitInfo } from './PdvPage'
 
 const OPCOES: { valor: FormaPagamento; label: string }[] = [
-  { valor: 'a_vista', label: 'À vista (dinheiro/PIX)' },
+  { valor: 'dinheiro', label: 'Dinheiro' },
+  { valor: 'pix', label: 'PIX' },
   { valor: 'cartao', label: 'Cartão' },
   { valor: 'fiado', label: 'A prazo' },
+]
+
+const OPCOES_RECEBIMENTO: { valor: FormaRecebimento; label: string }[] = [
+  { valor: 'dinheiro', label: 'Dinheiro' },
+  { valor: 'pix', label: 'PIX' },
+  { valor: 'cartao', label: 'Cartão' },
 ]
 
 export function FormaPagamentoStep({
@@ -29,6 +36,7 @@ export function FormaPagamentoStep({
     desconto: number
     valorEntrada: number
     combinacao: string | null
+    formaRecebimentoEntrada: FormaRecebimento | null
   }) => void
   onVoltar: () => void
 }) {
@@ -36,6 +44,7 @@ export function FormaPagamentoStep({
   const [cliente, setCliente] = useState<Cliente | null>(null)
   const [valorEntrada, setValorEntrada] = useState('')
   const [combinacao, setCombinacao] = useState('')
+  const [formaRecebimentoEntrada, setFormaRecebimentoEntrada] = useState<FormaRecebimento>('dinheiro')
 
   const totalComDesconto = Math.max(0, total - desconto)
   const numeroEntrada = Math.max(0, Number(valorEntrada) || 0)
@@ -180,6 +189,30 @@ export function FormaPagamentoStep({
             )}
           </label>
 
+          {numeroEntrada > 0 && (
+            <div>
+              <span className="mb-2 block text-sm font-medium text-neutral-700">
+                Forma de recebimento da entrada
+              </span>
+              <div className="flex gap-2">
+                {OPCOES_RECEBIMENTO.map((op) => (
+                  <button
+                    key={op.valor}
+                    type="button"
+                    onClick={() => setFormaRecebimentoEntrada(op.valor)}
+                    className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
+                      formaRecebimentoEntrada === op.valor
+                        ? 'border-neutral-900 bg-[var(--cor-primaria)] text-white'
+                        : 'border-neutral-300 bg-white text-neutral-900'
+                    }`}
+                  >
+                    {op.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-neutral-700">
               Combinado com o cliente (opcional)
@@ -211,6 +244,7 @@ export function FormaPagamentoStep({
               desconto,
               valorEntrada: forma === 'fiado' ? numeroEntrada : 0,
               combinacao: forma === 'fiado' ? combinacao || null : null,
+              formaRecebimentoEntrada: forma === 'fiado' && numeroEntrada > 0 ? formaRecebimentoEntrada : null,
             })
           }
           disabled={!podeContinuar()}

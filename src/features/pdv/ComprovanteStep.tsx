@@ -11,7 +11,8 @@ import { buscarConfiguracoes, type Configuracoes } from '../configuracoes/api'
 import { precoEfetivo, nomeCompleto } from '../produtos/api'
 
 const FORMA_LABEL: Record<string, string> = {
-  a_vista: 'À vista',
+  dinheiro: 'Dinheiro',
+  pix: 'PIX',
   cartao: 'Cartão',
   fiado: 'A prazo',
 }
