@@ -26,9 +26,9 @@ import type { FormaPagamento } from '../../types/database.types'
 
 function StatCard({ label, valor, sub }: { label: string; valor: string; sub?: string }) {
   return (
-    <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
+    <div className="rounded-xl bg-white p-2.5 ring-1 ring-neutral-200">
       <p className="text-xs text-neutral-500">{label}</p>
-      <p className="text-lg font-semibold text-neutral-900">{valor}</p>
+      <p className="text-base font-semibold text-neutral-900">{valor}</p>
       {sub && <p className="text-xs text-neutral-400">{sub}</p>}
     </div>
   )
@@ -218,7 +218,7 @@ export function DashboardPage() {
             <button
               key={aba.valor}
               onClick={() => setFiltroMarca(aba.valor)}
-              className={`flex-1 rounded-lg py-2 text-sm font-medium ${
+              className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${
                 filtroMarca === aba.valor
                   ? 'bg-[var(--cor-primaria)] text-white'
                   : 'bg-white text-neutral-600 ring-1 ring-neutral-200'
@@ -244,7 +244,7 @@ export function DashboardPage() {
 
         {kpis && (
           <>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <StatCard
                 label="Faturamento"
                 valor={`R$ ${kpis.faturamentoTotal.toFixed(2)}`}
@@ -274,13 +274,13 @@ export function DashboardPage() {
                 {financeiroPorMarca.map((f) => (
                   <div key={f.marca}>
                     <p className="mb-1.5 text-xs font-medium text-neutral-500">{f.marca}</p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 gap-2">
                       <StatCard label="Boleto pendente" valor={`R$ ${f.boletoPendente.toFixed(2)}`} />
                       <StatCard label="A prazo em aberto" valor={`R$ ${f.prazoAberto.toFixed(2)}`} />
                       <StatCard label="Caixa (dinheiro)" valor={`R$ ${f.caixa.toFixed(2)}`} />
                       <StatCard label="Conta (PIX/cartão)" valor={`R$ ${f.conta.toFixed(2)}`} />
                       <div
-                        className={`rounded-xl p-3 ring-1 ${
+                        className={`rounded-xl p-2.5 ring-1 ${
                           f.total >= 0 ? 'bg-green-50 ring-green-200' : 'bg-red-50 ring-red-200'
                         }`}
                       >
@@ -288,7 +288,7 @@ export function DashboardPage() {
                           Total
                         </p>
                         <p
-                          className={`text-lg font-semibold ${
+                          className={`text-base font-semibold ${
                             f.total >= 0 ? 'text-green-800' : 'text-red-800'
                           }`}
                         >
@@ -311,7 +311,7 @@ export function DashboardPage() {
 
             <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
               <h2 className="mb-3 text-sm font-medium text-neutral-700">Estoque atual</h2>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 <StatCard label="Unidades" valor={String(estoqueResumo.totalUnidades)} />
                 <StatCard
                   label="Valor (custo)"
@@ -322,9 +322,9 @@ export function DashboardPage() {
                   valor={`R$ ${estoqueResumo.valorVenda.toFixed(2)}`}
                 />
               </div>
-              <div className="mt-3 rounded-lg bg-green-50 p-3 ring-1 ring-green-200">
+              <div className="mt-3 rounded-lg bg-green-50 p-2.5 ring-1 ring-green-200">
                 <p className="text-xs font-medium text-green-800">Lucro potencial (se vender tudo)</p>
-                <p className="text-lg font-semibold text-green-800">
+                <p className="text-base font-semibold text-green-800">
                   R$ {(estoqueResumo.valorVenda - estoqueResumo.valorCusto).toFixed(2)}
                 </p>
               </div>
@@ -333,9 +333,9 @@ export function DashboardPage() {
             <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
               <h2 className="mb-3 text-sm font-medium text-neutral-700">Resultado financeiro</h2>
 
-              <div className="mb-2 rounded-lg bg-green-50 p-3 ring-1 ring-green-200">
+              <div className="mb-2 rounded-lg bg-green-50 p-2.5 ring-1 ring-green-200">
                 <p className="text-xs font-medium text-green-800">Você tem / vai receber</p>
-                <p className="text-lg font-semibold text-green-800">
+                <p className="text-base font-semibold text-green-800">
                   R$ {(caixaContaRealFiltrado + totalFiadoAberto).toFixed(2)}
                 </p>
                 <p className="text-xs text-green-700">
@@ -344,9 +344,9 @@ export function DashboardPage() {
                 </p>
               </div>
 
-              <div className="mb-3 rounded-lg bg-red-50 p-3 ring-1 ring-red-200">
+              <div className="mb-3 rounded-lg bg-red-50 p-2.5 ring-1 ring-red-200">
                 <p className="text-xs font-medium text-red-800">Você deve</p>
-                <p className="text-lg font-semibold text-red-800">
+                <p className="text-base font-semibold text-red-800">
                   R$ {totalBoletosPendentes.toFixed(2)}
                 </p>
                 <Link to="/boletos" className="text-xs text-red-700 underline">

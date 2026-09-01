@@ -27,7 +27,7 @@ export function FiltroPeriodoBar({
           <button
             key={op.valor}
             onClick={() => onChange(op.valor)}
-            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium ${
+            className={`whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-medium ${
               tipo === op.valor
                 ? 'bg-[var(--cor-primaria)] text-white'
                 : 'bg-white text-neutral-600 ring-1 ring-neutral-200'
@@ -44,13 +44,13 @@ export function FiltroPeriodoBar({
             type="date"
             value={personalizadoDesde}
             onChange={(e) => onChangePersonalizado(e.target.value, personalizadoAte)}
-            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none"
+            className="flex-1 rounded-lg border border-neutral-300 px-2 py-1.5 text-xs focus:outline-none"
           />
           <input
             type="date"
             value={personalizadoAte}
             onChange={(e) => onChangePersonalizado(personalizadoDesde, e.target.value)}
-            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none"
+            className="flex-1 rounded-lg border border-neutral-300 px-2 py-1.5 text-xs focus:outline-none"
           />
         </div>
       )}
