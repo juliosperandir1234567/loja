@@ -88,55 +88,6 @@ export function DashboardPage() {
   const boletosPendentes = boletosFiltrados.filter((b) => b.status === 'pendente')
   const totalBoletosPendentes = boletosPendentes.reduce((acc, b) => acc + Number(b.valor), 0)
 
-  const caixaContaPorMarca = useMemo(() => {
-    const base: Record<string, { caixa: number; conta: number }> = Object.fromEntries(
-      MARCAS_FIXAS.map((m) => [m, { caixa: 0, conta: 0 }]),
-    )
-
-    // vendas diretas: cada item já sabe sua marca e a forma de pagamento da venda
-    for (const i of itens) {
-      const bucket = base[i.produto_marca]
-      if (!bucket) continue
-      if (i.forma_pagamento === 'dinheiro') bucket.caixa += Number(i.subtotal)
-      else if (i.forma_pagamento === 'pix' || i.forma_pagamento === 'cartao') bucket.conta += Number(i.subtotal)
-    }
-
-    // subtotal por venda e marca, usado pra ratear pagamentos sem item específico
-    // (entrada lançada na hora da venda) proporcionalmente entre as marcas da venda
-    const subtotalPorVendaEMarca = new Map<string, Map<string, number>>()
-    for (const i of itens) {
-      const mapaMarca = subtotalPorVendaEMarca.get(i.venda_id) ?? new Map<string, number>()
-      mapaMarca.set(i.produto_marca, (mapaMarca.get(i.produto_marca) ?? 0) + Number(i.subtotal))
-      subtotalPorVendaEMarca.set(i.venda_id, mapaMarca)
-    }
-
-    for (const p of pagamentosFiadoPeriodo ?? []) {
-      const bucketNome =
-        p.forma_recebimento === 'dinheiro'
-          ? 'caixa'
-          : p.forma_recebimento === 'pix' || p.forma_recebimento === 'cartao'
-            ? 'conta'
-            : null
-      if (!bucketNome) continue
-
-      if (p.produto_marca) {
-        if (base[p.produto_marca]) base[p.produto_marca][bucketNome] += Number(p.valor_pago)
-        continue
-      }
-
-      const mapaMarca = subtotalPorVendaEMarca.get(p.venda_id)
-      if (!mapaMarca) continue
-      const total = Array.from(mapaMarca.values()).reduce((a, b) => a + b, 0)
-      if (total <= 0) continue
-      for (const [marca, subtotal] of mapaMarca) {
-        if (!base[marca]) continue
-        base[marca][bucketNome] += (subtotal / total) * Number(p.valor_pago)
-      }
-    }
-
-    return base
-  }, [itens, pagamentosFiadoPeriodo])
-
   const financeiroPorMarca = MARCAS_FIXAS.map((marca) => {
     const boletoPendente = (boletos ?? [])
       .filter((b) => b.status === 'pendente' && fornecedorCanonico(b.fornecedor) === marca)
@@ -144,8 +95,9 @@ export function DashboardPage() {
     const prazoAberto = (itensFiadoPendenteTodos ?? [])
       .filter((i) => i.produto_marca === marca)
       .reduce((acc, i) => acc + (Number(i.subtotal) - Number(i.valor_pago)), 0)
-    const { caixa, conta } = caixaContaPorMarca[marca] ?? { caixa: 0, conta: 0 }
     const real = saldoCaixaReal?.find((s) => s.fornecedor === marca) ?? null
+    const caixa = real ? Number(real.saldo_caixa) : 0
+    const conta = real ? Number(real.saldo_conta) : 0
     return {
       marca,
       boletoPendente,
@@ -153,8 +105,7 @@ export function DashboardPage() {
       caixa,
       conta,
       total: caixa + conta + prazoAberto - boletoPendente,
-      saldoRealCaixa: real ? Number(real.saldo_caixa) : null,
-      saldoRealConta: real ? Number(real.saldo_conta) : null,
+      atualizadoEm: real?.atualizado_em ?? null,
     }
   })
 
@@ -316,7 +267,7 @@ export function DashboardPage() {
             <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
               <h2 className="mb-1 text-sm font-medium text-neutral-700">Financeiro por fornecedor</h2>
               <p className="mb-3 text-xs text-neutral-400">
-                Dinheiro cai no caixa, PIX e cartão caem na conta — no período selecionado
+                Caixa e conta são o saldo real digitado no painel de Caixa
               </p>
               <div className="flex flex-col gap-3">
                 {financeiroPorMarca.map((f) => (
@@ -344,15 +295,14 @@ export function DashboardPage() {
                         </p>
                       </div>
                     </div>
-                    {(f.saldoRealCaixa !== null || f.saldoRealConta !== null) && (
-                      <p className="mt-1.5 text-xs text-neutral-400">
-                        Saldo real: caixa R$ {(f.saldoRealCaixa ?? 0).toFixed(2)} · conta R${' '}
-                        {(f.saldoRealConta ?? 0).toFixed(2)} ·{' '}
-                        <Link to="/caixa" className="underline">
-                          atualizar
-                        </Link>
-                      </p>
-                    )}
+                    <p className="mt-1.5 text-xs text-neutral-400">
+                      {f.atualizadoEm
+                        ? `Caixa/conta atualizados em ${format(new Date(f.atualizadoEm), 'dd/MM/yyyy HH:mm')} · `
+                        : ''}
+                      <Link to="/caixa" className="underline">
+                        atualizar saldo
+                      </Link>
+                    </p>
                   </div>
                 ))}
               </div>
