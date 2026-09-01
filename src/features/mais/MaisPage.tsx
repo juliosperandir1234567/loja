@@ -4,6 +4,7 @@ import { AppShell } from '../../components/layout/AppShell'
 const ITENS = [
   { to: '/clientes', label: 'Clientes', descricao: 'Cadastro completo de clientes' },
   { to: '/boletos', label: 'Boletos a pagar', descricao: 'Contas a pagar aos fornecedores' },
+  { to: '/caixa', label: 'Caixa', descricao: 'Saldo em caixa e em conta' },
   { to: '/usuarios', label: 'Usuários', descricao: 'Cadastro de vendedores' },
   { to: '/etiquetas', label: 'Etiquetas', descricao: 'Imprimir preço dos produtos' },
   { to: '/configuracoes', label: 'Configurações', descricao: 'Loja, mensagens e aparência' },

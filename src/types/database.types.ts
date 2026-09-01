@@ -283,6 +283,29 @@ export interface Database {
         }>
         Relationships: []
       }
+      saldo_caixa: {
+        Row: {
+          fornecedor: Marca
+          saldo_caixa: number
+          saldo_conta: number
+          atualizado_por: string | null
+          atualizado_em: string
+        }
+        Insert: never
+        Update: Partial<{
+          saldo_caixa: number
+          saldo_conta: number
+        }>
+        Relationships: [
+          {
+            foreignKeyName: 'saldo_caixa_atualizado_por_fkey'
+            columns: ['atualizado_por']
+            isOneToOne: false
+            referencedRelation: 'usuarios'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       pagamentos_fiado: {
         Row: {
           id: string

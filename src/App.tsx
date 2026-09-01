@@ -19,6 +19,7 @@ import { ClienteFormPage } from './features/clientes/ClienteFormPage'
 import { ConfiguracoesPage } from './features/configuracoes/ConfiguracoesPage'
 import { MaisPage } from './features/mais/MaisPage'
 import { BoletosPage } from './features/boletos/BoletosPage'
+import { CaixaPage } from './features/caixa/CaixaPage'
 import { UsuariosListPage } from './features/usuarios/UsuariosListPage'
 import { EtiquetasPage } from './features/etiquetas/EtiquetasPage'
 
@@ -187,6 +188,14 @@ export default function App() {
           element={
             <ProtectedRoute allow={['admin']}>
               <BoletosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/caixa"
+          element={
+            <ProtectedRoute allow={['admin']}>
+              <CaixaPage />
             </ProtectedRoute>
           }
         />

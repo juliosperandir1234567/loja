@@ -86,16 +86,6 @@ export function DashboardPage() {
   const boletosPendentes = boletosFiltrados.filter((b) => b.status === 'pendente')
   const totalBoletosPendentes = boletosPendentes.reduce((acc, b) => acc + Number(b.valor), 0)
 
-  const financeiroPorMarca = MARCAS_FIXAS.map((marca) => {
-    const boletoPendente = (boletos ?? [])
-      .filter((b) => b.status === 'pendente' && fornecedorCanonico(b.fornecedor) === marca)
-      .reduce((acc, b) => acc + Number(b.valor), 0)
-    const prazoAberto = (itensFiadoPendenteTodos ?? [])
-      .filter((i) => i.produto_marca === marca)
-      .reduce((acc, i) => acc + (Number(i.subtotal) - Number(i.valor_pago)), 0)
-    return { marca, boletoPendente, prazoAberto, total: prazoAberto - boletoPendente }
-  })
-
   const caixaContaPorMarca = useMemo(() => {
     const base: Record<string, { caixa: number; conta: number }> = Object.fromEntries(
       MARCAS_FIXAS.map((m) => [m, { caixa: 0, conta: 0 }]),
@@ -144,6 +134,24 @@ export function DashboardPage() {
 
     return base
   }, [itens, pagamentosFiadoPeriodo])
+
+  const financeiroPorMarca = MARCAS_FIXAS.map((marca) => {
+    const boletoPendente = (boletos ?? [])
+      .filter((b) => b.status === 'pendente' && fornecedorCanonico(b.fornecedor) === marca)
+      .reduce((acc, b) => acc + Number(b.valor), 0)
+    const prazoAberto = (itensFiadoPendenteTodos ?? [])
+      .filter((i) => i.produto_marca === marca)
+      .reduce((acc, i) => acc + (Number(i.subtotal) - Number(i.valor_pago)), 0)
+    const { caixa, conta } = caixaContaPorMarca[marca] ?? { caixa: 0, conta: 0 }
+    return {
+      marca,
+      boletoPendente,
+      prazoAberto,
+      caixa,
+      conta,
+      total: caixa + conta + prazoAberto - boletoPendente,
+    }
+  })
 
   const caixaVendasDiretas = (kpis?.porFormaPagamento ?? [])
     .filter((p) => p.forma === 'dinheiro' || p.forma === 'pix' || p.forma === 'cartao')
@@ -301,56 +309,38 @@ export function DashboardPage() {
             </div>
 
             <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
-              <h2 className="mb-3 text-sm font-medium text-neutral-700">Financeiro por fornecedor</h2>
-              <div className="flex flex-col gap-3">
-                {financeiroPorMarca.map((f) => (
-                  <div key={f.marca}>
-                    <p className="mb-1.5 text-xs font-medium text-neutral-500">{f.marca}</p>
-                    <div className="grid grid-cols-3 gap-3">
-                      <StatCard label="Boleto pendente" valor={`R$ ${f.boletoPendente.toFixed(2)}`} />
-                      <StatCard label="A prazo em aberto" valor={`R$ ${f.prazoAberto.toFixed(2)}`} />
-                      <div
-                        className={`rounded-xl p-3 ring-1 ${
-                          f.total >= 0
-                            ? 'bg-green-50 ring-green-200'
-                            : 'bg-red-50 ring-red-200'
-                        }`}
-                      >
-                        <p className={`text-xs ${f.total >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                          Total
-                        </p>
-                        <p
-                          className={`text-lg font-semibold ${
-                            f.total >= 0 ? 'text-green-800' : 'text-red-800'
-                          }`}
-                        >
-                          R$ {f.total.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
-              <h2 className="mb-1 text-sm font-medium text-neutral-700">Caixa e conta por fornecedor</h2>
+              <h2 className="mb-1 text-sm font-medium text-neutral-700">Financeiro por fornecedor</h2>
               <p className="mb-3 text-xs text-neutral-400">
                 Dinheiro cai no caixa, PIX e cartão caem na conta — no período selecionado
               </p>
               <div className="flex flex-col gap-3">
-                {MARCAS_FIXAS.map((marca) => {
-                  const d = caixaContaPorMarca[marca] ?? { caixa: 0, conta: 0 }
-                  return (
-                    <div key={marca}>
-                      <p className="mb-1.5 text-xs font-medium text-neutral-500">{marca}</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <StatCard label="Caixa (dinheiro)" valor={`R$ ${d.caixa.toFixed(2)}`} />
-                        <StatCard label="Conta (PIX/cartão)" valor={`R$ ${d.conta.toFixed(2)}`} />
-                      </div>
+                {financeiroPorMarca.map((f) => (
+                  <div key={f.marca}>
+                    <p className="mb-1.5 text-xs font-medium text-neutral-500">{f.marca}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <StatCard label="Boleto pendente" valor={`R$ ${f.boletoPendente.toFixed(2)}`} />
+                      <StatCard label="A prazo em aberto" valor={`R$ ${f.prazoAberto.toFixed(2)}`} />
+                      <StatCard label="Caixa (dinheiro)" valor={`R$ ${f.caixa.toFixed(2)}`} />
+                      <StatCard label="Conta (PIX/cartão)" valor={`R$ ${f.conta.toFixed(2)}`} />
                     </div>
-                  )
-                })}
+                    <div
+                      className={`mt-3 rounded-xl p-3 ring-1 ${
+                        f.total >= 0 ? 'bg-green-50 ring-green-200' : 'bg-red-50 ring-red-200'
+                      }`}
+                    >
+                      <p className={`text-xs ${f.total >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                        Total (caixa + conta + a prazo − boleto)
+                      </p>
+                      <p
+                        className={`text-lg font-semibold ${
+                          f.total >= 0 ? 'text-green-800' : 'text-red-800'
+                        }`}
+                      >
+                        R$ {f.total.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
