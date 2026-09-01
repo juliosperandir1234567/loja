@@ -83,9 +83,8 @@ export function DashboardPage() {
     .filter((i) => filtroMarca === 'todos' || i.produto_marca === filtroMarca)
     .reduce((acc, i) => acc + (Number(i.subtotal) - Number(i.valor_pago)), 0)
 
-  const totalBoletosPendentes = boletosFiltrados
-    .filter((b) => b.status === 'pendente')
-    .reduce((acc, b) => acc + Number(b.valor), 0)
+  const boletosPendentes = boletosFiltrados.filter((b) => b.status === 'pendente')
+  const totalBoletosPendentes = boletosPendentes.reduce((acc, b) => acc + Number(b.valor), 0)
 
   const caixaVendasDiretas = (kpis?.porFormaPagamento ?? [])
     .filter((p) => p.forma === 'a_vista' || p.forma === 'cartao')
@@ -236,6 +235,11 @@ export function DashboardPage() {
               <StatCard label="Itens vendidos" valor={String(kpis.itensVendidos)} />
               <StatCard label="Lucro bruto estimado" valor={`R$ ${kpis.lucroBrutoEstimado.toFixed(2)}`} />
               <StatCard label="Maior venda" valor={`R$ ${kpis.maiorVenda.toFixed(2)}`} />
+              <StatCard
+                label="Boletos pendentes"
+                valor={`R$ ${totalBoletosPendentes.toFixed(2)}`}
+                sub={`${boletosPendentes.length} boleto${boletosPendentes.length === 1 ? '' : 's'}`}
+              />
             </div>
 
             <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
