@@ -86,6 +86,16 @@ export function DashboardPage() {
   const boletosPendentes = boletosFiltrados.filter((b) => b.status === 'pendente')
   const totalBoletosPendentes = boletosPendentes.reduce((acc, b) => acc + Number(b.valor), 0)
 
+  const financeiroPorMarca = MARCAS_FIXAS.map((marca) => {
+    const boletoPendente = (boletos ?? [])
+      .filter((b) => b.status === 'pendente' && fornecedorCanonico(b.fornecedor) === marca)
+      .reduce((acc, b) => acc + Number(b.valor), 0)
+    const prazoAberto = (itensFiadoPendenteTodos ?? [])
+      .filter((i) => i.produto_marca === marca)
+      .reduce((acc, i) => acc + (Number(i.subtotal) - Number(i.valor_pago)), 0)
+    return { marca, boletoPendente, prazoAberto, total: prazoAberto - boletoPendente }
+  })
+
   const caixaVendasDiretas = (kpis?.porFormaPagamento ?? [])
     .filter((p) => p.forma === 'a_vista' || p.forma === 'cartao')
     .reduce((acc, p) => acc + p.valor, 0)
@@ -220,18 +230,17 @@ export function DashboardPage() {
 
         {kpis && (
           <>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <StatCard
                 label="Faturamento"
                 valor={`R$ ${kpis.faturamentoTotal.toFixed(2)}`}
                 sub={
                   kpis.variacaoPercentual !== null
-                    ? `${kpis.variacaoPercentual >= 0 ? '+' : ''}${kpis.variacaoPercentual.toFixed(0)}% vs período anterior`
+                    ? `${kpis.variacaoPercentual >= 0 ? '+' : ''}${kpis.variacaoPercentual.toFixed(0)}%`
                     : undefined
                 }
               />
               <StatCard label="Vendas realizadas" valor={String(kpis.numeroVendas)} />
-              <StatCard label="A prazo em aberto" valor={`R$ ${totalFiadoAberto.toFixed(2)}`} />
               <StatCard label="Itens vendidos" valor={String(kpis.itensVendidos)} />
               <StatCard label="Lucro bruto estimado" valor={`R$ ${kpis.lucroBrutoEstimado.toFixed(2)}`} />
               <StatCard label="Maior venda" valor={`R$ ${kpis.maiorVenda.toFixed(2)}`} />
@@ -240,6 +249,39 @@ export function DashboardPage() {
                 valor={`R$ ${totalBoletosPendentes.toFixed(2)}`}
                 sub={`${boletosPendentes.length} boleto${boletosPendentes.length === 1 ? '' : 's'}`}
               />
+            </div>
+
+            <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">
+              <h2 className="mb-3 text-sm font-medium text-neutral-700">Financeiro por fornecedor</h2>
+              <div className="flex flex-col gap-3">
+                {financeiroPorMarca.map((f) => (
+                  <div key={f.marca}>
+                    <p className="mb-1.5 text-xs font-medium text-neutral-500">{f.marca}</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <StatCard label="Boleto pendente" valor={`R$ ${f.boletoPendente.toFixed(2)}`} />
+                      <StatCard label="A prazo em aberto" valor={`R$ ${f.prazoAberto.toFixed(2)}`} />
+                      <div
+                        className={`rounded-xl p-3 ring-1 ${
+                          f.total >= 0
+                            ? 'bg-green-50 ring-green-200'
+                            : 'bg-red-50 ring-red-200'
+                        }`}
+                      >
+                        <p className={`text-xs ${f.total >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          Total
+                        </p>
+                        <p
+                          className={`text-lg font-semibold ${
+                            f.total >= 0 ? 'text-green-800' : 'text-red-800'
+                          }`}
+                        >
+                          R$ {f.total.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="rounded-xl bg-white p-3 ring-1 ring-neutral-200">

@@ -83,8 +83,6 @@ export function BalancoMensalSection({
     return base
   }, [itensAno, boletos, ano, fornecedores])
 
-  const mesAtualDados = ano === anoAtual ? linhas[mesAtual] : null
-
   const totalAnoPorFornecedor = useMemo(() => {
     const totais: Record<string, DadosFornecedorMes> = Object.fromEntries(
       fornecedores.map((f) => [f, fornecedorVazio()]),
@@ -132,35 +130,33 @@ export function BalancoMensalSection({
 
       {isLoading && <p className="text-sm text-neutral-400">Carregando...</p>}
 
-      {mesAtualDados && (
-        <div className="mb-3 rounded-lg bg-green-50 p-3 ring-1 ring-green-200">
-          <p className="mb-1 text-xs font-medium text-green-900">
-            Mês atual — {MESES[mesAtual]}/{anoAtual}
-          </p>
-          <div className="flex flex-col gap-0.5 text-sm text-green-900">
-            {fornecedores.map((f) => {
-              const d = mesAtualDados.porFornecedor[f]
-              if (!d || (d.venda === 0 && d.boleto === 0)) return null
-              return (
-                <div key={f} className="flex justify-between">
-                  <span>{f}</span>
-                  <span>
-                    Venda R$ {d.venda.toFixed(2)}
-                    {!somenteVendas && ` · Boleto R$ ${d.boleto.toFixed(2)}`}
-                  </span>
+      <div className="mb-3 flex flex-col gap-2 rounded-lg bg-green-50 p-3 ring-1 ring-green-200">
+        <p className="text-xs font-medium text-green-900">Saldo total — {ano}</p>
+        {fornecedores.map((f) => {
+          const d = totalAnoPorFornecedor.porFornecedor[f]
+          if (!d || (d.venda === 0 && d.boleto === 0)) return null
+          const total = d.venda - d.boleto
+          return (
+            <div key={f} className="border-t border-green-200 pt-2 text-sm text-green-900 first:border-t-0 first:pt-0">
+              <p className="font-semibold">{f}</p>
+              <div className="flex justify-between">
+                <span>Dívida (boletos)</span>
+                <span>R$ {d.boleto.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Venda</span>
+                <span>R$ {d.venda.toFixed(2)}</span>
+              </div>
+              {!somenteVendas && (
+                <div className={`flex justify-between font-semibold ${total >= 0 ? '' : 'text-red-700'}`}>
+                  <span>Total</span>
+                  <span>R$ {total.toFixed(2)}</span>
                 </div>
-              )
-            })}
-            <div className="flex justify-between font-semibold">
-              <span>Total do mês</span>
-              <span>
-                Venda R$ {mesAtualDados.totalVenda.toFixed(2)}
-                {!somenteVendas && ` · Resultado R$ ${mesAtualDados.resultado.toFixed(2)}`}
-              </span>
+              )}
             </div>
-          </div>
-        </div>
-      )}
+          )
+        })}
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
