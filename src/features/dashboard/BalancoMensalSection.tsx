@@ -11,6 +11,7 @@ const MESES = [
 interface DadosFornecedorMes {
   venda: number
   boleto: number
+  emAberto: number
 }
 
 interface LinhaMes {
@@ -22,7 +23,7 @@ interface LinhaMes {
 }
 
 function fornecedorVazio(): DadosFornecedorMes {
-  return { venda: 0, boleto: 0 }
+  return { venda: 0, boleto: 0, emAberto: 0 }
 }
 
 export function BalancoMensalSection({
@@ -82,6 +83,7 @@ export function BalancoMensalSection({
       const m = new Date(item.criado_em).getMonth()
       if (!base[m].porFornecedor[marca]) base[m].porFornecedor[marca] = fornecedorVazio()
       base[m].porFornecedor[marca].venda += Number(item.subtotal)
+      base[m].porFornecedor[marca].emAberto += Number(item.subtotal) - Number(item.valor_pago)
       base[m].totalVenda += Number(item.subtotal)
     }
 
@@ -114,6 +116,7 @@ export function BalancoMensalSection({
         const d = linha.porFornecedor[f] ?? fornecedorVazio()
         totais[f].venda += d.venda
         totais[f].boleto += d.boleto
+        totais[f].emAberto += d.emAberto
       }
       totalVenda += linha.totalVenda
       totalBoleto += linha.totalBoleto
@@ -162,7 +165,7 @@ export function BalancoMensalSection({
           const d = totalAnoPorFornecedor.porFornecedor[f]
           if (!d || (d.venda === 0 && d.boleto === 0)) return null
           const caixaConta = saldoCaixaPorFornecedor[f] ?? 0
-          const total = caixaConta + d.venda - d.boleto
+          const total = caixaConta + d.emAberto - d.boleto
           return (
             <div key={f} className="border-t border-green-200 pt-2 text-sm text-green-900 first:border-t-0 first:pt-0">
               <p className="font-semibold">{f}</p>
@@ -176,6 +179,10 @@ export function BalancoMensalSection({
               </div>
               {!somenteVendas && (
                 <>
+                  <div className="flex justify-between">
+                    <span>Ainda a receber dessa venda</span>
+                    <span>R$ {d.emAberto.toFixed(2)}</span>
+                  </div>
                   <div className="flex justify-between">
                     <span>Caixa + conta (saldo real)</span>
                     <span>R$ {caixaConta.toFixed(2)}</span>
