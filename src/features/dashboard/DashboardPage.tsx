@@ -10,7 +10,6 @@ import { VendasPorDiaChart } from './VendasPorDiaChart'
 import { FormaPagamentoChart } from './FormaPagamentoChart'
 import {
   useDashboardKpis,
-  usePagamentosFiadoPeriodo,
   useItensFiadoPendenteTodos,
   useEstoqueResumo,
   LABEL_FORMA,
@@ -71,7 +70,6 @@ export function DashboardPage() {
   const { kpis, isLoading, vendas, itens } = useDashboardKpis(periodo, filtroMarca)
   const { data: aniversariantes } = useAniversariantesDaSemana()
   const { data: boletos } = useBoletos()
-  const { data: pagamentosFiadoPeriodo } = usePagamentosFiadoPeriodo(periodo)
   const { data: itensFiadoPendenteTodos } = useItensFiadoPendenteTodos()
   const { data: saldoCaixaReal } = useSaldoCaixa()
   const estoqueResumo = useEstoqueResumo(filtroMarca)
@@ -109,43 +107,46 @@ export function DashboardPage() {
     }
   })
 
-  const caixaVendasDiretas = (kpis?.porFormaPagamento ?? [])
-    .filter((p) => p.forma === 'dinheiro' || p.forma === 'pix' || p.forma === 'cartao')
-    .reduce((acc, p) => acc + p.valor, 0)
-  // inclui entradas e pagamentos de vendas a prazo recebidos no período — antes esse
-  // dinheiro não entrava no caixa mesmo já tendo sido recebido de fato.
-  // pagamentos sem item específico (entrada na hora da venda) só entram na visão "Todos",
-  // já que não dá pra saber com certeza de qual marca era aquele dinheiro.
-  const caixaPagamentosAPrazo = (pagamentosFiadoPeriodo ?? [])
-    .filter((p) => (filtroMarca === 'todos' ? true : p.produto_marca === filtroMarca))
-    .reduce((acc, p) => acc + Number(p.valor_pago), 0)
-  const caixaRecebido = caixaVendasDiretas + caixaPagamentosAPrazo
-  const resultadoFinanceiro = caixaRecebido + totalFiadoAberto - totalBoletosPendentes
+  // usa o mesmo saldo real (caixa + conta) do painel de Caixa que já aparece em
+  // "Financeiro por fornecedor", pra bater com aquela seção
+  const caixaContaRealFiltrado = (saldoCaixaReal ?? [])
+    .filter((s) => filtroMarca === 'todos' || s.fornecedor === filtroMarca)
+    .reduce((acc, s) => acc + Number(s.saldo_caixa) + Number(s.saldo_conta), 0)
+  const resultadoFinanceiro = caixaContaRealFiltrado + totalFiadoAberto - totalBoletosPendentes
 
   const resultadoPorFornecedor = useMemo(() => {
-    const fornecedores = [
-      ...MARCAS_FIXAS,
-      ...Array.from(
-        new Set(
-          (boletos ?? [])
-            .map((b) => fornecedorCanonico(b.fornecedor))
-            .filter((f) => !MARCAS_FIXAS.includes(f)),
-        ),
-      ).sort(),
-    ]
+    const principais = financeiroPorMarca.map((f) => ({
+      fornecedor: f.marca,
+      caixaConta: f.caixa + f.conta,
+      prazoAberto: f.prazoAberto,
+      boletoPendente: f.boletoPendente,
+      resultado: f.total,
+    }))
 
-    return fornecedores
+    const outros = Array.from(
+      new Set(
+        (boletos ?? [])
+          .map((b) => fornecedorCanonico(b.fornecedor))
+          .filter((f) => !MARCAS_FIXAS.includes(f)),
+      ),
+    )
+      .sort()
       .map((fornecedor) => {
-        const vendido = itens
-          .filter((i) => i.produto_marca === fornecedor)
-          .reduce((acc, i) => acc + Number(i.subtotal), 0)
         const boletoPendente = (boletos ?? [])
           .filter((b) => b.status === 'pendente' && fornecedorCanonico(b.fornecedor) === fornecedor)
           .reduce((acc, b) => acc + Number(b.valor), 0)
-        return { fornecedor, vendido, boletoPendente, resultado: vendido - boletoPendente }
+        return {
+          fornecedor,
+          caixaConta: 0,
+          prazoAberto: 0,
+          boletoPendente,
+          resultado: -boletoPendente,
+        }
       })
-      .filter((f) => f.vendido > 0 || f.boletoPendente > 0)
-  }, [itens, boletos])
+      .filter((f) => f.boletoPendente > 0)
+
+    return [...principais, ...outros]
+  }, [financeiroPorMarca, boletos])
 
   const itensDaMarca = useMemo(
     () => (filtroMarca === 'todos' ? itens : itens.filter((i) => i.produto_marca === filtroMarca)),
@@ -335,11 +336,11 @@ export function DashboardPage() {
               <div className="mb-2 rounded-lg bg-green-50 p-3 ring-1 ring-green-200">
                 <p className="text-xs font-medium text-green-800">Você tem / vai receber</p>
                 <p className="text-lg font-semibold text-green-800">
-                  R$ {(caixaRecebido + totalFiadoAberto).toFixed(2)}
+                  R$ {(caixaContaRealFiltrado + totalFiadoAberto).toFixed(2)}
                 </p>
                 <p className="text-xs text-green-700">
-                  Caixa no período: R$ {caixaRecebido.toFixed(2)} · A prazo em aberto: R${' '}
-                  {totalFiadoAberto.toFixed(2)}
+                  Caixa e conta (saldo real): R$ {caixaContaRealFiltrado.toFixed(2)} · A prazo em
+                  aberto: R$ {totalFiadoAberto.toFixed(2)}
                 </p>
               </div>
 
@@ -377,7 +378,8 @@ export function DashboardPage() {
                           <span className="text-neutral-700">
                             {f.fornecedor}
                             <span className="ml-1 text-xs text-neutral-400">
-                              (vendido R$ {f.vendido.toFixed(2)} − boleto R$ {f.boletoPendente.toFixed(2)})
+                              (caixa+conta R$ {f.caixaConta.toFixed(2)} + a prazo R${' '}
+                              {f.prazoAberto.toFixed(2)} − boleto R$ {f.boletoPendente.toFixed(2)})
                             </span>
                           </span>
                           <span
