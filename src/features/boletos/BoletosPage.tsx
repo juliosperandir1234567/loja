@@ -220,12 +220,12 @@ export function BoletosPage() {
         )}
 
         <div className="flex flex-col gap-2 rounded-xl bg-white p-3 ring-1 ring-neutral-200">
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             {ABAS_FORNECEDOR.map((f) => (
               <button
                 key={f}
                 onClick={() => setFiltroFornecedor(f)}
-                className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${
+                className={`flex-1 rounded-lg py-0.5 text-xs font-medium ${
                   filtroFornecedor === f
                     ? 'bg-[var(--cor-primaria)] text-white'
                     : 'bg-white text-neutral-600 ring-1 ring-neutral-200'

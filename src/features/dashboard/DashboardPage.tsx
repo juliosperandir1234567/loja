@@ -213,12 +213,12 @@ export function DashboardPage() {
   return (
     <AppShell title="Painel">
       <div className="flex flex-col gap-4 p-4">
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           {ABAS_MARCA.map((aba) => (
             <button
               key={aba.valor}
               onClick={() => setFiltroMarca(aba.valor)}
-              className={`flex-1 rounded-lg py-1 text-xs font-medium ${
+              className={`flex-1 rounded-lg py-0.5 text-xs font-medium ${
                 filtroMarca === aba.valor
                   ? 'bg-[var(--cor-primaria)] text-white'
                   : 'bg-white text-neutral-600 ring-1 ring-neutral-200'

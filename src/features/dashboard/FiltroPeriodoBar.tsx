@@ -27,7 +27,7 @@ export function FiltroPeriodoBar({
           <button
             key={op.valor}
             onClick={() => onChange(op.valor)}
-            className={`whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-medium ${
+            className={`whitespace-nowrap rounded-lg px-2 py-0.5 text-xs font-medium ${
               tipo === op.valor
                 ? 'bg-[var(--cor-primaria)] text-white'
                 : 'bg-white text-neutral-600 ring-1 ring-neutral-200'
