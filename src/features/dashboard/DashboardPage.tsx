@@ -19,6 +19,7 @@ import {
 import { calcularPeriodo, type TipoPeriodo, type Periodo } from './periodo'
 import { useAniversariantesDaSemana } from '../fiado/hooks'
 import { useBoletos } from '../boletos/hooks'
+import { useSaldoCaixa } from '../caixa/hooks'
 import { BalancoMensalSection } from './BalancoMensalSection'
 import { MARCAS_FIXAS, fornecedorCanonico } from './fornecedor'
 import { baixarCsv } from '../../utils/csv'
@@ -72,6 +73,7 @@ export function DashboardPage() {
   const { data: boletos } = useBoletos()
   const { data: pagamentosFiadoPeriodo } = usePagamentosFiadoPeriodo(periodo)
   const { data: itensFiadoPendenteTodos } = useItensFiadoPendenteTodos()
+  const { data: saldoCaixaReal } = useSaldoCaixa()
   const estoqueResumo = useEstoqueResumo(filtroMarca)
 
   const boletosFiltrados =
@@ -143,6 +145,7 @@ export function DashboardPage() {
       .filter((i) => i.produto_marca === marca)
       .reduce((acc, i) => acc + (Number(i.subtotal) - Number(i.valor_pago)), 0)
     const { caixa, conta } = caixaContaPorMarca[marca] ?? { caixa: 0, conta: 0 }
+    const real = saldoCaixaReal?.find((s) => s.fornecedor === marca) ?? null
     return {
       marca,
       boletoPendente,
@@ -150,6 +153,8 @@ export function DashboardPage() {
       caixa,
       conta,
       total: caixa + conta + prazoAberto - boletoPendente,
+      saldoRealCaixa: real ? Number(real.saldo_caixa) : null,
+      saldoRealConta: real ? Number(real.saldo_conta) : null,
     }
   })
 
@@ -317,28 +322,37 @@ export function DashboardPage() {
                 {financeiroPorMarca.map((f) => (
                   <div key={f.marca}>
                     <p className="mb-1.5 text-xs font-medium text-neutral-500">{f.marca}</p>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <StatCard label="Boleto pendente" valor={`R$ ${f.boletoPendente.toFixed(2)}`} />
                       <StatCard label="A prazo em aberto" valor={`R$ ${f.prazoAberto.toFixed(2)}`} />
                       <StatCard label="Caixa (dinheiro)" valor={`R$ ${f.caixa.toFixed(2)}`} />
                       <StatCard label="Conta (PIX/cartão)" valor={`R$ ${f.conta.toFixed(2)}`} />
-                    </div>
-                    <div
-                      className={`mt-3 rounded-xl p-3 ring-1 ${
-                        f.total >= 0 ? 'bg-green-50 ring-green-200' : 'bg-red-50 ring-red-200'
-                      }`}
-                    >
-                      <p className={`text-xs ${f.total >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                        Total (caixa + conta + a prazo − boleto)
-                      </p>
-                      <p
-                        className={`text-lg font-semibold ${
-                          f.total >= 0 ? 'text-green-800' : 'text-red-800'
+                      <div
+                        className={`rounded-xl p-3 ring-1 ${
+                          f.total >= 0 ? 'bg-green-50 ring-green-200' : 'bg-red-50 ring-red-200'
                         }`}
                       >
-                        R$ {f.total.toFixed(2)}
-                      </p>
+                        <p className={`text-xs ${f.total >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          Total
+                        </p>
+                        <p
+                          className={`text-lg font-semibold ${
+                            f.total >= 0 ? 'text-green-800' : 'text-red-800'
+                          }`}
+                        >
+                          R$ {f.total.toFixed(2)}
+                        </p>
+                      </div>
                     </div>
+                    {(f.saldoRealCaixa !== null || f.saldoRealConta !== null) && (
+                      <p className="mt-1.5 text-xs text-neutral-400">
+                        Saldo real: caixa R$ {(f.saldoRealCaixa ?? 0).toFixed(2)} · conta R${' '}
+                        {(f.saldoRealConta ?? 0).toFixed(2)} ·{' '}
+                        <Link to="/caixa" className="underline">
+                          atualizar
+                        </Link>
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
