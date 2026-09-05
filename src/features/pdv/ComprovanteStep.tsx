@@ -4,9 +4,10 @@ import toast from 'react-hot-toast'
 import type { Venda } from './api'
 import type { CarrinhoItem, KitInfo } from './PdvPage'
 import type { Cliente } from '../clientes/api'
-import { abrirWhatsApp } from '../../utils/whatsapp'
+import { compartilharImagemOuBaixarEAbrirWhatsApp } from '../../utils/whatsapp'
 import { buscarSaldoCliente } from '../fiado/api'
 import { gerarPdfFiado } from '../fiado/pdfFiado'
+import { gerarImagemComprovante } from './imagemComprovante'
 import { buscarConfiguracoes, type Configuracoes } from '../configuracoes/api'
 import { precoEfetivo, nomeCompleto } from '../produtos/api'
 
@@ -76,65 +77,20 @@ export function ComprovanteStep({
     }
   }
 
-  // mesmo conteúdo mostrado na tela/PDF (itens, desconto, entrada, dados do
-  // cliente e saldo em aberto quando a prazo)
-  function montarMensagem() {
-    let linhas: string
-    if (kitInfo) {
-      const linhasKit = itensDoKit
-        .map((i) => `${i.quantidade}x ${nomeCompleto(i.produto)}`)
-        .join('\n')
-      const linhasFora = itensFora
-        .map((i) => `${i.quantidade}x ${nomeCompleto(i.produto)} — R$ ${(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}`)
-        .join('\n')
-      linhas = `*Kit (${itensDoKit.length} itens) — R$ ${kitInfo.valorFinal.toFixed(2)}*\n${linhasKit}`
-      if (linhasFora) linhas += `\n\n${linhasFora}`
-    } else {
-      linhas = itens
-        .map((i) => `${i.quantidade}x ${nomeCompleto(i.produto)} — R$ ${(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}`)
-        .join('\n')
-    }
-
-    let msg = `*${nomeLoja}*\nComprovante de venda\n\n${linhas}`
-
-    if (Number(venda.desconto) > 0) {
-      msg += `\n\nDesconto: R$ ${Number(venda.desconto).toFixed(2)}`
-    }
-    msg += `\nTotal: R$ ${Number(venda.valor_total).toFixed(2)}`
-    msg += `\nForma de pagamento: ${FORMA_LABEL[venda.forma_pagamento]}`
-    msg += `\nData: ${format(new Date(venda.criado_em), 'dd/MM/yyyy HH:mm')}`
-
-    if (venda.forma_pagamento === 'fiado') {
-      if (cliente) {
-        msg += `\n\nCliente: ${cliente.nome}`
-        msg += `\nTelefone: ${cliente.telefone}`
-        if (cliente.cpf) msg += `\nCPF: ${cliente.cpf}`
-      }
-      if (entrada > 0) {
-        msg += `\n\nEntrada paga: R$ ${entrada.toFixed(2)}`
-        msg += `\nFica a prazo desta compra: R$ ${restanteDestaCompra.toFixed(2)}`
-      }
-      if (cliente) {
-        msg += `\n\nSaldo em aberto anterior: R$ ${saldoAnterior.toFixed(2)}`
-        msg += `\n*TOTAL GERAL DEVIDO: R$ ${totalGeralDevido.toFixed(2)}*`
-      }
-      if (venda.combinacao) {
-        msg += `\n\nCombinado: ${venda.combinacao}`
-      }
-    }
-
-    if (venda.status === 'pendente') {
-      msg += `\n\nStatus: pendente`
-    }
-    return msg
-  }
-
-  function handleEnviarWhatsApp() {
+  async function handleEnviarWhatsApp() {
     if (!telefone) return
     setEnviandoWhatsApp(true)
     try {
-      abrirWhatsApp(telefone, montarMensagem())
+      const blob = await gerarImagemComprovante({ nomeLoja, venda, itens, kitInfo, cliente, saldoAnterior })
+      await compartilharImagemOuBaixarEAbrirWhatsApp({
+        blob,
+        nomeArquivo: `comprovante-venda-${format(new Date(), 'yyyy-MM-dd-HHmm')}.png`,
+        telefone,
+        legenda: `*${nomeLoja}*\nSegue o comprovante da compra. Obrigado pela confiança 💚`,
+      })
       window.print()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao enviar comprovante')
     } finally {
       setEnviandoWhatsApp(false)
     }
