@@ -8,6 +8,7 @@ import {
   useItensFiadoPendenteCliente,
   useRegistrarPagamentoItens,
   useHistoricoVendasCliente,
+  usePagamentosCliente,
 } from './hooks'
 import { buscarSaldoCliente, listarPagamentosCliente } from './api'
 import { buscarConfiguracoes } from '../configuracoes/api'
@@ -49,6 +50,7 @@ export function ClienteFiadoDetailPage() {
   const { data: cliente } = useCliente(id)
   const { data: itens, isLoading } = useItensFiadoPendenteCliente(id)
   const { data: historico, isLoading: carregandoHistorico } = useHistoricoVendasCliente(id)
+  const { data: pagamentos, isLoading: carregandoPagamentos } = usePagamentosCliente(id)
   const registrarItens = useRegistrarPagamentoItens()
 
   const [valores, setValores] = useState<Record<string, string>>({})
@@ -58,6 +60,7 @@ export function ClienteFiadoDetailPage() {
   const [gerandoExtrato, setGerandoExtrato] = useState(false)
   const [pagandoTudo, setPagandoTudo] = useState(false)
   const [mostrarHistorico, setMostrarHistorico] = useState(false)
+  const [mostrarPagamentos, setMostrarPagamentos] = useState(false)
   const [valorParcial, setValorParcial] = useState('')
   const [pagandoParcial, setPagandoParcial] = useState(false)
   const [formaRecebimento, setFormaRecebimento] = useState<FormaRecebimento>('dinheiro')
@@ -207,31 +210,43 @@ export function ClienteFiadoDetailPage() {
     }
   }
 
-  async function handleReenviarExtrato() {
-    if (!cliente || !id) return
+  async function handleGerarPdfExtrato() {
+    if (!cliente || !pagamentos || pagamentos.length === 0) return
     setGerandoExtrato(true)
     try {
-      const [config, historicoPagamentos, saldoAtual] = await Promise.all([
-        buscarConfiguracoes(),
-        listarPagamentosCliente(id),
-        buscarSaldoCliente(id),
-      ])
-      if (historicoPagamentos.length === 0) {
-        toast.error('Esse cliente ainda não tem pagamentos registrados')
-        return
-      }
+      const config = await buscarConfiguracoes()
       await gerarPdfPagamento({
         config,
         nome: cliente.nome,
         telefone: cliente.telefone,
-        pagamentos: historicoPagamentos.map(paraPagamentoHistorico),
-        saldoRestante: saldoAtual,
+        pagamentos: pagamentos.map(paraPagamentoHistorico),
+        saldoRestante: totalEmAberto,
       })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao gerar PDF')
     } finally {
       setGerandoExtrato(false)
     }
+  }
+
+  function handleEnviarWhatsAppExtrato() {
+    if (!cliente || !pagamentos || pagamentos.length === 0) return
+    const linhas = [
+      '*Espaço Sperandir*',
+      'Extrato de Pagamentos — Venda a Prazo',
+      '',
+      `Cliente: ${cliente.nome}`,
+      '',
+      ...pagamentos.map(
+        (p) =>
+          `${format(new Date(p.criado_em), 'dd/MM/yyyy')} — pagou R$ ${Number(p.valor_pago).toFixed(2)} (${FORMA_LABEL[p.forma_recebimento]})`,
+      ),
+      '',
+      totalEmAberto > 0
+        ? `Saldo restante em aberto: R$ ${totalEmAberto.toFixed(2)}`
+        : 'Conta a prazo totalmente quitada.',
+    ]
+    abrirWhatsApp(cliente.telefone, linhas.join('\n'))
   }
 
   function mensagemWhatsApp(r: Recibo) {
@@ -314,14 +329,6 @@ export function ClienteFiadoDetailPage() {
           <p className="text-sm text-neutral-500">{cliente?.telefone}</p>
           <p className="text-lg font-semibold text-red-700">Total em aberto: R$ {totalEmAberto.toFixed(2)}</p>
         </div>
-
-        <button
-          onClick={handleReenviarExtrato}
-          disabled={gerandoExtrato}
-          className="rounded-lg border border-neutral-300 py-3 text-sm font-medium text-neutral-700 disabled:opacity-50"
-        >
-          {gerandoExtrato ? 'Gerando PDF...' : 'Reenviar PDF do extrato de pagamentos'}
-        </button>
 
         {isLoading && <p className="text-neutral-400">Carregando...</p>}
 
@@ -502,6 +509,56 @@ export function ClienteFiadoDetailPage() {
                   </div>
                 )
               })}
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-neutral-200 pt-3">
+          <button
+            onClick={() => setMostrarPagamentos((v) => !v)}
+            className="text-sm font-medium text-neutral-600 underline"
+          >
+            {mostrarPagamentos ? 'Ocultar' : 'Ver'} histórico de pagamentos
+          </button>
+
+          {mostrarPagamentos && (
+            <div className="mt-3 flex flex-col gap-2">
+              {carregandoPagamentos && <p className="text-sm text-neutral-400">Carregando...</p>}
+              {!carregandoPagamentos && (pagamentos ?? []).length === 0 && (
+                <p className="text-sm text-neutral-400">Nenhum pagamento registrado ainda.</p>
+              )}
+              {(pagamentos ?? []).length > 0 && (
+                <>
+                  <ul className="flex flex-col gap-1.5 rounded-xl bg-white p-3 text-sm ring-1 ring-neutral-200">
+                    {pagamentos!.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between">
+                        <span className="text-neutral-500">
+                          {format(new Date(p.criado_em), 'dd/MM/yyyy')} ·{' '}
+                          {FORMA_LABEL[p.forma_recebimento]}
+                        </span>
+                        <span className="font-medium text-neutral-900">
+                          R$ {Number(p.valor_pago).toFixed(2)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleGerarPdfExtrato}
+                      disabled={gerandoExtrato}
+                      className="flex-1 rounded-lg bg-amber-600 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                    >
+                      {gerandoExtrato ? 'Gerando...' : 'Gerar PDF'}
+                    </button>
+                    <button
+                      onClick={handleEnviarWhatsAppExtrato}
+                      className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white"
+                    >
+                      Enviar por WhatsApp
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
