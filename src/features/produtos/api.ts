@@ -7,6 +7,9 @@ export type ProdutoUpdate = Database['public']['Tables']['produtos']['Update']
 
 export interface FiltroProdutos {
   nome?: string
+  // busca por nome, formato ou fragrância — usada no PDV, pra achar o produto
+  // digitando qualquer um desses campos
+  busca?: string
   fragrancia?: string
   tipo?: string
   marca?: string
@@ -16,6 +19,10 @@ export interface FiltroProdutos {
 
 export async function listarProdutos(filtros: FiltroProdutos = {}) {
   let query = supabase.from('produtos').select('*').eq('ativo', true).order('nome')
+  if (filtros.busca) {
+    const termo = filtros.busca.replace(/[(),]/g, ' ').trim()
+    query = query.or(`nome.ilike.%${termo}%,formato.ilike.%${termo}%,fragrancia_linha.ilike.%${termo}%`)
+  }
   if (filtros.nome) query = query.ilike('nome', `%${filtros.nome}%`)
   if (filtros.fragrancia) query = query.ilike('fragrancia_linha', `%${filtros.fragrancia}%`)
   if (filtros.tipo) query = query.eq('tipo', filtros.tipo as TipoProduto)

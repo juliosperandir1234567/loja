@@ -10,7 +10,7 @@ export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) =
   const [marcaAtiva, setMarcaAtiva] = useState<'Todos' | (typeof MARCAS)[number]>('Todos')
   const [scannerOpen, setScannerOpen] = useState(false)
   const temBusca = busca.trim().length > 0
-  const { data: produtos } = useProdutos({ nome: busca }, temBusca)
+  const { data: produtos } = useProdutos({ busca }, temBusca)
 
   const produtosFiltrados = (produtos ?? []).filter(
     (p) => marcaAtiva === 'Todos' || p.marca === marcaAtiva,
@@ -35,7 +35,7 @@ export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) =
           type="text"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar produto..."
+          placeholder="Buscar por nome, formato ou fragrância..."
           className="flex-1 rounded-xl border border-neutral-300 px-4 text-base focus:border-neutral-900 focus:outline-none"
         />
         <button
@@ -68,7 +68,7 @@ export function ProdutoGridPicker({ onSelect }: { onSelect: (produto: Produto) =
 
       {!temBusca && (
         <p className="py-6 text-center text-sm text-neutral-400">
-          Busque um produto pelo nome ou escaneie o código de barras
+          Busque por nome, formato ou fragrância, ou escaneie o código de barras
         </p>
       )}
 
