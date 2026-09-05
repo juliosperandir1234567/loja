@@ -47,6 +47,7 @@ export async function listarProdutosEstoqueBaixo() {
     .from('produtos')
     .select('*')
     .eq('ativo', true)
+    .eq('avulso', false)
     .order('estoque_atual')
   if (error) throw error
   return (data ?? []).filter((p) => p.estoque_atual <= p.estoque_minimo)

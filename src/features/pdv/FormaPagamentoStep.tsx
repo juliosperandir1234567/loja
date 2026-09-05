@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import { ClientePicker } from '../../components/ClientePicker'
-import { precoEfetivo, nomeCompleto } from '../produtos/api'
+import { nomeCompleto } from '../produtos/api'
 import type { Cliente } from '../clientes/api'
 import type { FormaPagamento, FormaRecebimento } from '../../types/database.types'
-import type { CarrinhoItem, KitInfo } from './PdvPage'
+import { valorItemCarrinho, type CarrinhoItem, type KitInfo } from './carrinho'
+
+function nomeItem(i: CarrinhoItem) {
+  return i.produto.avulso ? i.observacao || 'Item avulso' : nomeCompleto(i.produto)
+}
 
 const OPCOES: { valor: FormaPagamento; label: string }[] = [
   { valor: 'dinheiro', label: 'Dinheiro' },
@@ -92,10 +96,10 @@ export function FormaPagamentoStep({
                 {itensFora.map((i) => (
                   <li key={i.produto.id} className="flex justify-between text-sm">
                     <span className="truncate text-neutral-700">
-                      {i.quantidade}x {nomeCompleto(i.produto)}
+                      {i.quantidade}x {nomeItem(i)}
                     </span>
                     <span className="shrink-0 font-medium text-neutral-900">
-                      R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
+                      R$ {(i.quantidade * valorItemCarrinho(i)).toFixed(2)}
                     </span>
                   </li>
                 ))}
@@ -107,10 +111,10 @@ export function FormaPagamentoStep({
             {itens.map((i) => (
               <li key={i.produto.id} className="flex justify-between text-sm">
                 <span className="truncate text-neutral-700">
-                  {i.quantidade}x {nomeCompleto(i.produto)}
+                  {i.quantidade}x {nomeItem(i)}
                 </span>
                 <span className="shrink-0 font-medium text-neutral-900">
-                  R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
+                  R$ {(i.quantidade * valorItemCarrinho(i)).toFixed(2)}
                 </span>
               </li>
             ))}

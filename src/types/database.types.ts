@@ -94,6 +94,7 @@ export interface Database {
           tipo: TipoProduto | null
           formato: string | null
           ativo: boolean
+          avulso: boolean
           criado_em: string
           atualizado_em: string
         }
@@ -239,6 +240,7 @@ export interface Database {
           preco_unitario: number
           subtotal: number
           valor_pago: number
+          observacao: string | null
         }
         Insert: never
         Update: never
@@ -480,7 +482,7 @@ export interface Database {
       finalizar_venda: {
         Args: {
           p_venda_id: string
-          p_itens: { produto_id: string; quantidade: number }[]
+          p_itens: { produto_id: string; quantidade: number; preco?: number; observacao?: string | null }[]
           p_forma_pagamento: FormaPagamento
           p_cliente_id?: string | null
           p_vencimento_boleto?: string | null

@@ -6,6 +6,8 @@ export type Venda = Database['public']['Tables']['vendas']['Row']
 export interface ItemCarrinho {
   produtoId: string
   quantidade: number
+  preco?: number
+  observacao?: string | null
 }
 
 export interface FinalizarVendaParams {
@@ -40,7 +42,12 @@ export async function finalizarVenda(params: FinalizarVendaParams): Promise<Vend
 
   const { data, error } = await supabase.rpc('finalizar_venda', {
     p_venda_id: vendaId,
-    p_itens: params.itens.map((i) => ({ produto_id: i.produtoId, quantidade: i.quantidade })),
+    p_itens: params.itens.map((i) => ({
+      produto_id: i.produtoId,
+      quantidade: i.quantidade,
+      preco: i.preco,
+      observacao: i.observacao,
+    })),
     p_forma_pagamento: params.formaPagamento,
     p_cliente_id: params.clienteId ?? null,
     p_assinatura_url: path,

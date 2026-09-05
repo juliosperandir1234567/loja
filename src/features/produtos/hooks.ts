@@ -20,6 +20,14 @@ export function useProdutos(filtros: FiltroProdutos = {}, enabled = true) {
   })
 }
 
+export function useProdutosAvulsos() {
+  return useQuery({
+    queryKey: ['produtos-avulsos'],
+    queryFn: api.listarProdutosAvulsos,
+    staleTime: Infinity,
+  })
+}
+
 export function useProduto(id: string | undefined) {
   return useQuery({
     queryKey: ['produtos', 'detalhe', id],

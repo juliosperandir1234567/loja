@@ -2,9 +2,9 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { format } from 'date-fns'
 import type { Cliente } from '../clientes/api'
-import type { CarrinhoItem, KitInfo } from '../pdv/PdvPage'
+import { valorItemCarrinho, type CarrinhoItem, type KitInfo } from '../pdv/carrinho'
 import type { Venda } from '../pdv/api'
-import { precoEfetivo, nomeCompleto } from '../produtos/api'
+import { nomeCompleto } from '../produtos/api'
 
 interface ConfigLoja {
   nome_loja: string
@@ -72,12 +72,16 @@ export async function gerarPdfFiado(params: {
   autoTable(doc, {
     startY: 68,
     head: [['Produto', 'Qtd', 'Preço unit.', 'Subtotal']],
-    body: itens.map((i) => [
-      kitIds.has(i.produto.id) ? `${nomeCompleto(i.produto)} (kit)` : nomeCompleto(i.produto),
-      String(i.quantidade),
-      `R$ ${precoEfetivo(i.produto).toFixed(2)}`,
-      `R$ ${(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}`,
-    ]),
+    body: itens.map((i) => {
+      const nome = i.produto.avulso ? i.observacao || 'Item avulso' : nomeCompleto(i.produto)
+      const preco = valorItemCarrinho(i)
+      return [
+        kitIds.has(i.produto.id) ? `${nome} (kit)` : nome,
+        String(i.quantidade),
+        `R$ ${preco.toFixed(2)}`,
+        `R$ ${(i.quantidade * preco).toFixed(2)}`,
+      ]
+    }),
   })
 
   const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10

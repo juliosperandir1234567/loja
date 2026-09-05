@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
-import { precoEfetivo, nomeCompleto } from '../produtos/api'
-import type { CarrinhoItem, KitInfo } from './PdvPage'
+import { nomeCompleto } from '../produtos/api'
+import { valorItemCarrinho, type CarrinhoItem, type KitInfo } from './carrinho'
+
+function nomeItem(i: CarrinhoItem) {
+  return i.produto.avulso ? i.observacao || 'Item avulso' : nomeCompleto(i.produto)
+}
 
 export function DescontoStep({
   itens,
@@ -38,7 +42,7 @@ export function DescontoStep({
 
   const itensDoKitLista = itens.filter((i) => itensDoKit.has(i.produto.id))
   const subtotalKit = itensDoKitLista.reduce(
-    (acc, i) => acc + i.quantidade * precoEfetivo(i.produto),
+    (acc, i) => acc + i.quantidade * valorItemCarrinho(i),
     0,
   )
 
@@ -67,7 +71,7 @@ export function DescontoStep({
               <li key={i.produto.id} className="flex flex-col gap-1.5 py-2 text-sm first:pt-0 last:pb-0">
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-2 text-neutral-700">
-                    {itens.length >= 2 && (
+                    {itens.length >= 2 && !i.produto.avulso && (
                       <input
                         type="checkbox"
                         checked={noKit}
@@ -76,10 +80,10 @@ export function DescontoStep({
                         aria-label={`Incluir ${nomeCompleto(i.produto)} no kit`}
                       />
                     )}
-                    <span className="truncate">{nomeCompleto(i.produto)}</span>
+                    <span className="truncate">{nomeItem(i)}</span>
                   </span>
                   <span className="shrink-0 font-medium text-neutral-900">
-                    R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}
+                    R$ {(i.quantidade * valorItemCarrinho(i)).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-2 pl-7">

@@ -64,6 +64,7 @@ export async function listarEstoqueParaResumo() {
     .from('produtos')
     .select('marca, estoque_atual, preco_custo, preco_venda, preco_promocional')
     .eq('ativo', true)
+    .eq('avulso', false)
   if (error) throw error
   return data
 }

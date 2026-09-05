@@ -2,20 +2,24 @@ import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import type { Venda } from './api'
-import type { CarrinhoItem, KitInfo } from './PdvPage'
+import { valorItemCarrinho, type CarrinhoItem, type KitInfo } from './carrinho'
 import type { Cliente } from '../clientes/api'
 import { compartilharImagemOuBaixarEAbrirWhatsApp } from '../../utils/whatsapp'
 import { buscarSaldoCliente } from '../fiado/api'
 import { gerarPdfFiado } from '../fiado/pdfFiado'
 import { gerarImagemComprovante } from './imagemComprovante'
 import { buscarConfiguracoes, type Configuracoes } from '../configuracoes/api'
-import { precoEfetivo, nomeCompleto } from '../produtos/api'
+import { nomeCompleto } from '../produtos/api'
 
 const FORMA_LABEL: Record<string, string> = {
   dinheiro: 'Dinheiro',
   pix: 'PIX',
   cartao: 'Cartão',
   fiado: 'A prazo',
+}
+
+function nomeItem(i: CarrinhoItem) {
+  return i.produto.avulso ? i.observacao || 'Item avulso' : nomeCompleto(i.produto)
 }
 
 export function ComprovanteStep({
@@ -133,9 +137,9 @@ export function ComprovanteStep({
                 {itensFora.map((i) => (
                   <li key={i.produto.id} className="flex justify-between text-sm">
                     <span>
-                      {i.quantidade}x {nomeCompleto(i.produto)}
+                      {i.quantidade}x {nomeItem(i)}
                     </span>
-                    <span>R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}</span>
+                    <span>R$ {(i.quantidade * valorItemCarrinho(i)).toFixed(2)}</span>
                   </li>
                 ))}
               </ul>
@@ -146,9 +150,9 @@ export function ComprovanteStep({
             {itens.map((i) => (
               <li key={i.produto.id} className="flex justify-between text-sm">
                 <span>
-                  {i.quantidade}x {nomeCompleto(i.produto)}
+                  {i.quantidade}x {nomeItem(i)}
                 </span>
-                <span>R$ {(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}</span>
+                <span>R$ {(i.quantidade * valorItemCarrinho(i)).toFixed(2)}</span>
               </li>
             ))}
           </ul>

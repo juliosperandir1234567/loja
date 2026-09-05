@@ -2,26 +2,20 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { AppShell } from '../../components/layout/AppShell'
 import { ProdutoGridPicker } from '../../components/ProdutoGridPicker'
+import { ItemAvulsoForm } from './ItemAvulsoForm'
 import type { Produto } from '../produtos/api'
 import { precoEfetivo, nomeCompleto } from '../produtos/api'
 import type { Cliente } from '../clientes/api'
 import type { FormaPagamento, FormaRecebimento } from '../../types/database.types'
 import type { Venda } from './api'
 import { useFinalizarVenda } from './hooks'
+import { valorItemCarrinho, type CarrinhoItem, type KitInfo } from './carrinho'
 import { DescontoStep } from './DescontoStep'
 import { FormaPagamentoStep } from './FormaPagamentoStep'
 import { SignaturePadStep } from './SignaturePadStep'
 import { ComprovanteStep } from './ComprovanteStep'
 
-export interface CarrinhoItem {
-  produto: Produto
-  quantidade: number
-}
-
-export interface KitInfo {
-  produtoIds: string[]
-  valorFinal: number
-}
+export type { CarrinhoItem, KitInfo }
 
 type Etapa = 'carrinho' | 'desconto' | 'pagamento' | 'assinatura' | 'comprovante'
 
@@ -44,7 +38,7 @@ export function PdvPage() {
   const [assinaturaDataUrl, setAssinaturaDataUrl] = useState<string | null>(null)
   const finalizarVenda = useFinalizarVenda()
 
-  const total = carrinho.reduce((acc, i) => acc + i.quantidade * precoEfetivo(i.produto), 0)
+  const total = carrinho.reduce((acc, i) => acc + i.quantidade * valorItemCarrinho(i), 0)
 
   useEffect(() => {
     if ((etapa === 'desconto' || etapa === 'pagamento') && carrinho.length === 0) setEtapa('carrinho')
@@ -79,13 +73,25 @@ export function PdvPage() {
     setCarrinho((atual) =>
       atual.map((i) => {
         if (i.produto.id !== produtoId) return i
-        if (quantidade > i.produto.estoque_atual) {
+        if (!i.produto.avulso && quantidade > i.produto.estoque_atual) {
           toast.error(`Só tem ${i.produto.estoque_atual} un. de "${i.produto.nome}" em estoque`)
           return i
         }
         return { ...i, quantidade }
       }),
     )
+  }
+
+  function adicionarItemAvulso(produto: Produto, preco: number, observacao: string) {
+    setCarrinho((atual) => {
+      const existente = atual.find((i) => i.produto.id === produto.id)
+      if (existente) {
+        return atual.map((i) =>
+          i.produto.id === produto.id ? { ...i, precoAvulso: preco, observacao } : i,
+        )
+      }
+      return [...atual, { produto, quantidade: 1, precoAvulso: preco, observacao }]
+    })
   }
 
   function resetar() {
@@ -102,7 +108,12 @@ export function PdvPage() {
     if (!pagamento) return
     try {
       const venda = await finalizarVenda.mutateAsync({
-        itens: carrinho.map((i) => ({ produtoId: i.produto.id, quantidade: i.quantidade })),
+        itens: carrinho.map((i) => ({
+          produtoId: i.produto.id,
+          quantidade: i.quantidade,
+          preco: i.precoAvulso,
+          observacao: i.observacao,
+        })),
         formaPagamento: pagamento.formaPagamento,
         clienteId: pagamento.cliente?.id ?? null,
         assinaturaDataUrl: dataUrl,
@@ -187,6 +198,8 @@ export function PdvPage() {
       <div className={`flex flex-col gap-4 p-4 ${carrinho.length > 0 ? 'pb-32' : ''}`}>
         <ProdutoGridPicker onSelect={adicionarProduto} />
 
+        <ItemAvulsoForm onAdicionar={adicionarItemAvulso} />
+
         {carrinho.length > 0 && (
           <div>
             <h2 className="mb-2 text-base font-bold text-neutral-700">
@@ -199,13 +212,21 @@ export function PdvPage() {
                   className="flex items-center justify-between rounded-2xl bg-white p-3 ring-1 ring-neutral-200"
                 >
                   <div className="min-w-0 pr-2">
-                    <p className="truncate font-semibold text-neutral-900">{nomeCompleto(item.produto)}</p>
+                    <p className="truncate font-semibold text-neutral-900">
+                      {item.produto.avulso ? item.observacao || 'Item avulso' : nomeCompleto(item.produto)}
+                    </p>
                     <p className="text-sm text-neutral-500">
-                      R$ {precoEfetivo(item.produto).toFixed(2)} un.
-                      {item.produto.preco_promocional && (
-                        <span className="ml-1 text-neutral-400 line-through">
-                          R$ {item.produto.preco_venda.toFixed(2)}
-                        </span>
+                      {item.produto.avulso ? (
+                        `${item.produto.marca} · R$ ${valorItemCarrinho(item).toFixed(2)} un.`
+                      ) : (
+                        <>
+                          R$ {precoEfetivo(item.produto).toFixed(2)} un.
+                          {item.produto.preco_promocional && (
+                            <span className="ml-1 text-neutral-400 line-through">
+                              R$ {item.produto.preco_venda.toFixed(2)}
+                            </span>
+                          )}
+                        </>
                       )}
                     </p>
                   </div>

@@ -18,7 +18,9 @@ export interface FiltroProdutos {
 }
 
 export async function listarProdutos(filtros: FiltroProdutos = {}) {
-  let query = supabase.from('produtos').select('*').eq('ativo', true).order('nome')
+  // avulso nunca entra na listagem normal — só é buscado explicitamente
+  // via listarProdutosAvulsos(), usado pelo botão "Item avulso" do PDV
+  let query = supabase.from('produtos').select('*').eq('ativo', true).eq('avulso', false).order('nome')
   if (filtros.busca) {
     const termo = filtros.busca.replace(/[(),]/g, ' ').trim()
     query = query.or(`nome.ilike.%${termo}%,formato.ilike.%${termo}%,fragrancia_linha.ilike.%${termo}%`)
@@ -30,6 +32,17 @@ export async function listarProdutos(filtros: FiltroProdutos = {}) {
   if (filtros.formato) query = query.eq('formato', filtros.formato)
   if (filtros.codigoBarras) query = query.eq('codigo_barras', filtros.codigoBarras)
   const { data, error } = await query
+  if (error) throw error
+  return data
+}
+
+export async function listarProdutosAvulsos() {
+  const { data, error } = await supabase
+    .from('produtos')
+    .select('*')
+    .eq('ativo', true)
+    .eq('avulso', true)
+    .order('marca')
   if (error) throw error
   return data
 }

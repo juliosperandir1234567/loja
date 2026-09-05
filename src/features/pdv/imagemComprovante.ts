@@ -1,8 +1,8 @@
 import { format } from 'date-fns'
 import type { Venda } from './api'
-import type { CarrinhoItem, KitInfo } from './PdvPage'
+import { valorItemCarrinho, type CarrinhoItem, type KitInfo } from './carrinho'
 import type { Cliente } from '../clientes/api'
-import { precoEfetivo, nomeCompleto } from '../produtos/api'
+import { nomeCompleto } from '../produtos/api'
 
 const FORMA_LABEL: Record<string, string> = {
   dinheiro: 'Dinheiro',
@@ -57,8 +57,9 @@ export async function gerarImagemComprovante(params: {
 
   const itensParaDesenhar = itens.map((i) => {
     medindo.font = '13px Arial'
-    const nome = kitIds.has(i.produto.id) ? `${nomeCompleto(i.produto)} (kit)` : nomeCompleto(i.produto)
-    const valorTexto = `R$ ${(i.quantidade * precoEfetivo(i.produto)).toFixed(2)}`
+    const nomeBase = i.produto.avulso ? i.observacao || 'Item avulso' : nomeCompleto(i.produto)
+    const nome = kitIds.has(i.produto.id) ? `${nomeBase} (kit)` : nomeBase
+    const valorTexto = `R$ ${(i.quantidade * valorItemCarrinho(i)).toFixed(2)}`
     const larguraValor = medindo.measureText(valorTexto).width
     const linhas = quebrarLinhas(medindo, `${i.quantidade}x ${nome}`, larguraConteudo - larguraValor - 12)
     return { linhas, valorTexto }
