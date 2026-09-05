@@ -1,10 +1,23 @@
 import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import { format } from 'date-fns'
 
 interface ConfigLoja {
   nome_loja: string
   telefone_loja: string | null
   logo_url?: string | null
+}
+
+export interface PagamentoHistorico {
+  valorPago: number
+  dataHora: string
+  formaRecebimento: string
+}
+
+const FORMA_LABEL: Record<string, string> = {
+  dinheiro: 'Dinheiro',
+  pix: 'PIX',
+  cartao: 'Cartão',
 }
 
 async function fetchImagemComoDataUrl(url: string): Promise<string | null> {
@@ -26,11 +39,10 @@ export async function gerarPdfPagamento(params: {
   config: ConfigLoja
   nome: string
   telefone: string
-  valorPago: number
+  pagamentos: PagamentoHistorico[]
   saldoRestante: number
-  dataHora: string
 }) {
-  const { config, nome, telefone, valorPago, saldoRestante, dataHora } = params
+  const { config, nome, telefone, pagamentos, saldoRestante } = params
   const doc = new jsPDF()
 
   if (config.logo_url) {
@@ -47,24 +59,36 @@ export async function gerarPdfPagamento(params: {
   doc.setFontSize(16)
   doc.text(config.nome_loja, 14, 18)
   doc.setFontSize(10)
-  doc.text('Comprovante de Pagamento — Venda a Prazo', 14, 25)
+  doc.text('Extrato de Pagamentos — Venda a Prazo', 14, 25)
   if (config.telefone_loja) doc.text(`Tel: ${config.telefone_loja}`, 14, 30)
 
   doc.setFontSize(11)
   doc.text(`Cliente: ${nome}`, 14, 45)
   doc.text(`Telefone: ${telefone}`, 14, 51)
-  doc.text(`Data do pagamento: ${format(new Date(dataHora), 'dd/MM/yyyy HH:mm')}`, 14, 57)
 
-  doc.setFontSize(13)
-  doc.text(`Valor pago: R$ ${valorPago.toFixed(2)}`, 14, 70)
+  autoTable(doc, {
+    startY: 58,
+    head: [['Data', 'Forma', 'Valor pago']],
+    body: pagamentos.map((p) => [
+      format(new Date(p.dataHora), 'dd/MM/yyyy HH:mm'),
+      FORMA_LABEL[p.formaRecebimento] ?? p.formaRecebimento,
+      `R$ ${p.valorPago.toFixed(2)}`,
+    ]),
+  })
+
+  const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
 
   doc.setFontSize(11)
+  const totalPago = pagamentos.reduce((acc, p) => acc + p.valorPago, 0)
+  doc.text(`Total pago: R$ ${totalPago.toFixed(2)}`, 14, finalY)
+
+  doc.setFontSize(13)
   doc.text(
     saldoRestante > 0
       ? `Saldo restante em aberto: R$ ${saldoRestante.toFixed(2)}`
       : 'Conta a prazo totalmente quitada.',
     14,
-    78,
+    finalY + 8,
   )
 
   doc.setFontSize(8)
@@ -74,5 +98,5 @@ export async function gerarPdfPagamento(params: {
     doc.internal.pageSize.getHeight() - 10,
   )
 
-  doc.save(`pagamento-${nome.replace(/\s+/g, '-').toLowerCase()}-${format(new Date(), 'yyyy-MM-dd')}.pdf`)
+  doc.save(`extrato-pagamentos-${nome.replace(/\s+/g, '-').toLowerCase()}-${format(new Date(), 'yyyy-MM-dd')}.pdf`)
 }

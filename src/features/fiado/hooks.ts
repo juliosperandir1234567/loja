@@ -44,6 +44,7 @@ export function useRegistrarPagamentoItens() {
       queryClient.invalidateQueries({ queryKey: ['fiado-itens-pendentes'] })
       queryClient.invalidateQueries({ queryKey: ['historico-vendas-cliente'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['saldo-caixa'] })
     },
   })
 }

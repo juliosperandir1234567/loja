@@ -4,6 +4,7 @@ export type TipoProduto = 'Masculino' | 'Feminino' | 'Unissex'
 export type TipoMovimentacao = 'entrada' | 'saida_manual' | 'venda' | 'ajuste' | 'estoque_inicial'
 export type FormaPagamento = 'dinheiro' | 'pix' | 'cartao' | 'fiado'
 export type FormaRecebimento = 'dinheiro' | 'pix' | 'cartao'
+export type FormaRecebimentoBoleto = 'dinheiro' | 'pix'
 export type StatusVenda = 'pago' | 'pendente' | 'cancelada'
 
 export interface Database {
@@ -267,6 +268,7 @@ export interface Database {
           vencimento: string
           status: 'pendente' | 'pago'
           data_pagamento: string | null
+          forma_pagamento: FormaRecebimentoBoleto | null
           criado_por: string
           criado_em: string
         }
@@ -439,6 +441,13 @@ export interface Database {
           p_motivo?: string | null
         }
         Returns: Database['public']['Tables']['vendas']['Row']
+      }
+      marcar_boleto_pago: {
+        Args: {
+          p_boleto_id: string
+          p_forma_pagamento: FormaRecebimentoBoleto
+        }
+        Returns: Database['public']['Tables']['boletos_compra']['Row']
       }
       registrar_ajuste_estoque: {
         Args: {

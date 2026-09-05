@@ -11,8 +11,86 @@ import {
   useAtualizarVencimentoBoleto,
   useDeletarBoletos,
 } from './hooks'
+import type { BoletoCompra } from './api'
+import type { FormaRecebimentoBoleto } from '../../types/database.types'
 
 const ABAS_FORNECEDOR = ['todos', ...MARCAS_FIXAS] as const
+
+const OPCOES_FORMA_BOLETO: { valor: FormaRecebimentoBoleto; label: string }[] = [
+  { valor: 'dinheiro', label: 'Dinheiro' },
+  { valor: 'pix', label: 'PIX' },
+]
+
+function ConfirmarPagamentoBoletoModal({
+  boleto,
+  onConfirm,
+  onClose,
+}: {
+  boleto: BoletoCompra
+  onConfirm: (forma: FormaRecebimentoBoleto) => Promise<void>
+  onClose: () => void
+}) {
+  const [forma, setForma] = useState<FormaRecebimentoBoleto>('dinheiro')
+  const [enviando, setEnviando] = useState(false)
+
+  async function handleConfirmar() {
+    setEnviando(true)
+    try {
+      await onConfirm(forma)
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/50 sm:items-center sm:justify-center">
+      <div className="w-full rounded-t-2xl bg-white p-4 sm:max-w-sm sm:rounded-2xl">
+        <h2 className="mb-1 text-base font-semibold text-neutral-900">Confirmar pagamento</h2>
+        <p className="mb-4 text-sm text-neutral-500">
+          Confirma que o boleto de {boleto.fornecedor} — R$ {Number(boleto.valor).toFixed(2)} foi
+          realmente pago? Isso desconta o valor do saldo real no painel.
+        </p>
+
+        <div className="mb-4">
+          <p className="mb-1 text-sm font-medium text-neutral-700">Pago com</p>
+          <div className="flex gap-2">
+            {OPCOES_FORMA_BOLETO.map((op) => (
+              <button
+                key={op.valor}
+                type="button"
+                onClick={() => setForma(op.valor)}
+                className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
+                  forma === op.valor
+                    ? 'border-neutral-900 bg-[var(--cor-primaria)] text-white'
+                    : 'border-neutral-300 bg-white text-neutral-900'
+                }`}
+              >
+                {op.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            disabled={enviando}
+            className="flex-1 rounded-lg border border-neutral-300 py-3 text-sm font-medium disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleConfirmar}
+            disabled={enviando}
+            className="flex-1 rounded-lg bg-green-600 py-3 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {enviando ? 'Confirmando...' : 'Confirmar pagamento'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function BoletosPage() {
   const { data: boletos, isLoading } = useBoletos()
@@ -23,6 +101,7 @@ export function BoletosPage() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
+  const [boletoParaPagar, setBoletoParaPagar] = useState<BoletoCompra | null>(null)
   const [fornecedor, setFornecedor] = useState('')
   const [descricao, setDescricao] = useState('')
   const [valorTotal, setValorTotal] = useState('')
@@ -96,10 +175,12 @@ export function BoletosPage() {
     }
   }
 
-  async function handleMarcarPago(id: string) {
+  async function handleConfirmarPagamento(formaPagamento: FormaRecebimentoBoleto) {
+    if (!boletoParaPagar) return
     try {
-      await marcarPago.mutateAsync(id)
+      await marcarPago.mutateAsync({ id: boletoParaPagar.id, formaPagamento })
       toast.success('Boleto marcado como pago')
+      setBoletoParaPagar(null)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao atualizar boleto')
     }
@@ -342,7 +423,7 @@ export function BoletosPage() {
                   <div className="text-right">
                     <p className="mb-1 font-medium text-neutral-900">R$ {Number(b.valor).toFixed(2)}</p>
                     <button
-                      onClick={() => handleMarcarPago(b.id)}
+                      onClick={() => setBoletoParaPagar(b)}
                       className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white"
                     >
                       Marcar como pago
@@ -392,6 +473,14 @@ export function BoletosPage() {
           descricao={`Isso vai excluir ${selecionados.size} boleto(s) definitivamente. Essa ação não pode ser desfeita.`}
           onConfirm={handleExcluirSelecionados}
           onClose={() => setConfirmandoExclusao(false)}
+        />
+      )}
+
+      {boletoParaPagar && (
+        <ConfirmarPagamentoBoletoModal
+          boleto={boletoParaPagar}
+          onConfirm={handleConfirmarPagamento}
+          onClose={() => setBoletoParaPagar(null)}
         />
       )}
     </AppShell>

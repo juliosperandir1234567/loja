@@ -9,9 +9,9 @@ import {
   useRegistrarPagamentoItens,
   useHistoricoVendasCliente,
 } from './hooks'
-import { buscarSaldoCliente } from './api'
+import { buscarSaldoCliente, listarPagamentosCliente } from './api'
 import { buscarConfiguracoes } from '../configuracoes/api'
-import { gerarPdfPagamento } from './pdfPagamento'
+import { gerarPdfPagamento, type PagamentoHistorico } from './pdfPagamento'
 import { abrirWhatsApp } from '../../utils/whatsapp'
 import type { FormaRecebimento } from '../../types/database.types'
 
@@ -20,6 +20,14 @@ interface Recibo {
   saldoRestante: number
   dataHora: string
   itens: string[]
+}
+
+function paraPagamentoHistorico(p: {
+  valor_pago: number
+  criado_em: string
+  forma_recebimento: string
+}): PagamentoHistorico {
+  return { valorPago: Number(p.valor_pago), dataHora: p.criado_em, formaRecebimento: p.forma_recebimento }
 }
 
 const FORMA_LABEL: Record<string, string> = {
@@ -47,6 +55,7 @@ export function ClienteFiadoDetailPage() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
   const [recibo, setRecibo] = useState<Recibo | null>(null)
   const [gerandoPdf, setGerandoPdf] = useState(false)
+  const [gerandoExtrato, setGerandoExtrato] = useState(false)
   const [pagandoTudo, setPagandoTudo] = useState(false)
   const [mostrarHistorico, setMostrarHistorico] = useState(false)
   const [valorParcial, setValorParcial] = useState('')
@@ -177,22 +186,51 @@ export function ClienteFiadoDetailPage() {
   }
 
   async function handleGerarPdf() {
-    if (!recibo || !cliente) return
+    if (!recibo || !cliente || !id) return
     setGerandoPdf(true)
     try {
-      const config = await buscarConfiguracoes()
+      const [config, historicoPagamentos] = await Promise.all([
+        buscarConfiguracoes(),
+        listarPagamentosCliente(id),
+      ])
       await gerarPdfPagamento({
         config,
         nome: cliente.nome,
         telefone: cliente.telefone,
-        valorPago: recibo.valorPago,
+        pagamentos: historicoPagamentos.map(paraPagamentoHistorico),
         saldoRestante: recibo.saldoRestante,
-        dataHora: recibo.dataHora,
       })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao gerar PDF')
     } finally {
       setGerandoPdf(false)
+    }
+  }
+
+  async function handleReenviarExtrato() {
+    if (!cliente || !id) return
+    setGerandoExtrato(true)
+    try {
+      const [config, historicoPagamentos, saldoAtual] = await Promise.all([
+        buscarConfiguracoes(),
+        listarPagamentosCliente(id),
+        buscarSaldoCliente(id),
+      ])
+      if (historicoPagamentos.length === 0) {
+        toast.error('Esse cliente ainda não tem pagamentos registrados')
+        return
+      }
+      await gerarPdfPagamento({
+        config,
+        nome: cliente.nome,
+        telefone: cliente.telefone,
+        pagamentos: historicoPagamentos.map(paraPagamentoHistorico),
+        saldoRestante: saldoAtual,
+      })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao gerar PDF')
+    } finally {
+      setGerandoExtrato(false)
     }
   }
 
@@ -276,6 +314,14 @@ export function ClienteFiadoDetailPage() {
           <p className="text-sm text-neutral-500">{cliente?.telefone}</p>
           <p className="text-lg font-semibold text-red-700">Total em aberto: R$ {totalEmAberto.toFixed(2)}</p>
         </div>
+
+        <button
+          onClick={handleReenviarExtrato}
+          disabled={gerandoExtrato}
+          className="rounded-lg border border-neutral-300 py-3 text-sm font-medium text-neutral-700 disabled:opacity-50"
+        >
+          {gerandoExtrato ? 'Gerando PDF...' : 'Reenviar PDF do extrato de pagamentos'}
+        </button>
 
         {isLoading && <p className="text-neutral-400">Carregando...</p>}
 

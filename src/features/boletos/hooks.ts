@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as api from './api'
 import type { BoletoCompraInsert } from './api'
+import type { FormaRecebimentoBoleto } from '../../types/database.types'
 
 export function useBoletos() {
   return useQuery({
@@ -45,7 +46,12 @@ export function useDeletarBoletos() {
 export function useMarcarBoletoComoPago() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => api.marcarBoletoComoPago(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['boletos-compra'] }),
+    mutationFn: ({ id, formaPagamento }: { id: string; formaPagamento: FormaRecebimentoBoleto }) =>
+      api.marcarBoletoComoPago(id, formaPagamento),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['boletos-compra'] })
+      queryClient.invalidateQueries({ queryKey: ['saldo-caixa'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 }

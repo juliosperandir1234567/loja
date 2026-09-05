@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabaseClient'
-import type { Database } from '../../types/database.types'
+import type { Database, FormaRecebimentoBoleto } from '../../types/database.types'
 
 export type BoletoCompra = Database['public']['Tables']['boletos_compra']['Row']
 export type BoletoCompraInsert = Database['public']['Tables']['boletos_compra']['Insert']
@@ -68,13 +68,11 @@ export async function deletarBoletos(ids: string[]) {
   if (error) throw error
 }
 
-export async function marcarBoletoComoPago(id: string) {
-  const { data, error } = await supabase
-    .from('boletos_compra')
-    .update({ status: 'pago', data_pagamento: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single()
+export async function marcarBoletoComoPago(id: string, formaPagamento: FormaRecebimentoBoleto) {
+  const { data, error } = await supabase.rpc('marcar_boleto_pago', {
+    p_boleto_id: id,
+    p_forma_pagamento: formaPagamento,
+  })
   if (error) throw error
   return data
 }

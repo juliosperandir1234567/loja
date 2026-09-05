@@ -31,6 +31,16 @@ export async function listarItensFiadoPendenteCliente(clienteId: string) {
   return data
 }
 
+export async function listarPagamentosCliente(clienteId: string) {
+  const { data, error } = await supabase
+    .from('pagamentos_fiado')
+    .select('*')
+    .eq('cliente_id', clienteId)
+    .order('criado_em', { ascending: true })
+  if (error) throw error
+  return data
+}
+
 export async function listarHistoricoVendasCliente(clienteId: string) {
   const { data, error } = await supabase
     .from('vw_historico_vendas_cliente')
