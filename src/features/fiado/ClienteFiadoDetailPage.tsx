@@ -23,12 +23,24 @@ interface Recibo {
   itens: string[]
 }
 
+function formatarProdutoPagamento(p: { produto_nome: string | null; quantidade: number | null }) {
+  if (!p.produto_nome) return null
+  return p.quantidade ? `${p.quantidade}x ${p.produto_nome}` : p.produto_nome
+}
+
 function paraPagamentoHistorico(p: {
   valor_pago: number
   criado_em: string
   forma_recebimento: string
+  produto_nome: string | null
+  quantidade: number | null
 }): PagamentoHistorico {
-  return { valorPago: Number(p.valor_pago), dataHora: p.criado_em, formaRecebimento: p.forma_recebimento }
+  return {
+    valorPago: Number(p.valor_pago),
+    dataHora: p.criado_em,
+    formaRecebimento: p.forma_recebimento,
+    produto: formatarProdutoPagamento(p),
+  }
 }
 
 const FORMA_LABEL: Record<string, string> = {
@@ -237,10 +249,10 @@ export function ClienteFiadoDetailPage() {
       '',
       `Cliente: ${cliente.nome}`,
       '',
-      ...pagamentos.map(
-        (p) =>
-          `${format(new Date(p.criado_em), 'dd/MM/yyyy')} — pagou R$ ${Number(p.valor_pago).toFixed(2)} (${FORMA_LABEL[p.forma_recebimento]})`,
-      ),
+      ...pagamentos.map((p) => {
+        const produto = formatarProdutoPagamento(p)
+        return `${format(new Date(p.criado_em), 'dd/MM/yyyy')} — pagou R$ ${Number(p.valor_pago).toFixed(2)} (${FORMA_LABEL[p.forma_recebimento]})${produto ? ` — ${produto}` : ''}`
+      }),
       '',
       totalEmAberto > 0
         ? `Saldo restante em aberto: R$ ${totalEmAberto.toFixed(2)}`
@@ -529,14 +541,21 @@ export function ClienteFiadoDetailPage() {
               )}
               {(pagamentos ?? []).length > 0 && (
                 <>
-                  <ul className="flex flex-col gap-1.5 rounded-xl bg-white p-3 text-sm ring-1 ring-neutral-200">
+                  <ul className="flex flex-col gap-2 rounded-xl bg-white p-3 text-sm ring-1 ring-neutral-200">
                     {pagamentos!.map((p) => (
-                      <li key={p.id} className="flex items-center justify-between">
-                        <span className="text-neutral-500">
-                          {format(new Date(p.criado_em), 'dd/MM/yyyy')} ·{' '}
-                          {FORMA_LABEL[p.forma_recebimento]}
-                        </span>
-                        <span className="font-medium text-neutral-900">
+                      <li key={p.id} className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-neutral-500">
+                            {format(new Date(p.criado_em), 'dd/MM/yyyy')} ·{' '}
+                            {FORMA_LABEL[p.forma_recebimento]}
+                          </p>
+                          {formatarProdutoPagamento(p) && (
+                            <p className="truncate text-xs text-neutral-400">
+                              {formatarProdutoPagamento(p)}
+                            </p>
+                          )}
+                        </div>
+                        <span className="shrink-0 font-medium text-neutral-900">
                           R$ {Number(p.valor_pago).toFixed(2)}
                         </span>
                       </li>

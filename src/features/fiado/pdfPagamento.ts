@@ -12,6 +12,7 @@ export interface PagamentoHistorico {
   valorPago: number
   dataHora: string
   formaRecebimento: string
+  produto: string | null
 }
 
 const FORMA_LABEL: Record<string, string> = {
@@ -68,9 +69,10 @@ export async function gerarPdfPagamento(params: {
 
   autoTable(doc, {
     startY: 58,
-    head: [['Data', 'Forma', 'Valor pago']],
+    head: [['Data', 'Comprou', 'Forma', 'Valor pago']],
     body: pagamentos.map((p) => [
       format(new Date(p.dataHora), 'dd/MM/yyyy HH:mm'),
+      p.produto ?? '—',
       FORMA_LABEL[p.formaRecebimento] ?? p.formaRecebimento,
       `R$ ${p.valorPago.toFixed(2)}`,
     ]),

@@ -33,7 +33,7 @@ export async function listarItensFiadoPendenteCliente(clienteId: string) {
 
 export async function listarPagamentosCliente(clienteId: string) {
   const { data, error } = await supabase
-    .from('pagamentos_fiado')
+    .from('vw_pagamentos_fiado_cliente')
     .select('*')
     .eq('cliente_id', clienteId)
     .order('criado_em', { ascending: true })

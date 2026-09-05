@@ -415,6 +415,14 @@ export interface Database {
         }
         Relationships: []
       }
+      vw_pagamentos_fiado_cliente: {
+        Row: Database['public']['Tables']['pagamentos_fiado']['Row'] & {
+          produto_nome: string | null
+          produto_marca: Marca | null
+          quantidade: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       criar_produto_com_estoque_inicial: {
