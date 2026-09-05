@@ -129,9 +129,14 @@ export function useDashboardKpis(periodo: Periodo, filtroMarca: FiltroMarca = 't
   const itens = useItensPeriodo(periodo)
   const anterior = useFaturamentoPeriodoAnterior(periodo)
   const itensAnterior = useItensPeriodoAnterior(periodo)
+  const pagamentosFiado = usePagamentosFiadoPeriodo(periodo)
 
   const isLoading =
-    vendas.isLoading || itens.isLoading || anterior.isLoading || itensAnterior.isLoading
+    vendas.isLoading ||
+    itens.isLoading ||
+    anterior.isLoading ||
+    itensAnterior.isLoading ||
+    pagamentosFiado.isLoading
 
   let kpis: KpisDashboard | null = null
 
@@ -186,11 +191,25 @@ export function useDashboardKpis(periodo: Periodo, filtroMarca: FiltroMarca = 't
       atual.vendaIds.add(i.venda_id)
       porFormaMap.set(i.forma_pagamento, atual)
     }
+
+    // recebimentos de dívidas fiado (pix/cartão/dinheiro) entram na forma real em que
+    // foram recebidos, não em "fiado" — senão o painel nunca mostra o dinheiro entrando
+    const pagamentosFiltrados = (pagamentosFiado.data ?? []).filter(
+      (p) => filtroMarca === 'todos' || p.produto_marca === filtroMarca,
+    )
+    for (const p of pagamentosFiltrados) {
+      const atual = porFormaMap.get(p.forma_recebimento) ?? { valor: 0, vendaIds: new Set<string>() }
+      atual.valor += Number(p.valor_pago)
+      atual.vendaIds.add(p.venda_id)
+      porFormaMap.set(p.forma_recebimento, atual)
+    }
+
+    const totalRecebido = faturamentoTotal + pagamentosFiltrados.reduce((acc, p) => acc + Number(p.valor_pago), 0)
     const porFormaPagamento = Array.from(porFormaMap.entries()).map(([forma, dados]) => ({
       forma,
       valor: dados.valor,
       quantidade: dados.vendaIds.size,
-      percentual: faturamentoTotal > 0 ? (dados.valor / faturamentoTotal) * 100 : 0,
+      percentual: totalRecebido > 0 ? (dados.valor / totalRecebido) * 100 : 0,
     }))
 
     const porVendedorMap = new Map<string, { valor: number; vendaIds: Set<string> }>()
