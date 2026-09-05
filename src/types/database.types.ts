@@ -420,6 +420,8 @@ export interface Database {
           produto_nome: string | null
           produto_marca: Marca | null
           quantidade: number | null
+          item_valor_total: number | null
+          item_restante: number | null
         }
         Relationships: []
       }

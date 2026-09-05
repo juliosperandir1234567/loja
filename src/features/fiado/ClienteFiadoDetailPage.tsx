@@ -34,12 +34,16 @@ function paraPagamentoHistorico(p: {
   forma_recebimento: string
   produto_nome: string | null
   quantidade: number | null
+  item_valor_total: number | null
+  item_restante: number | null
 }): PagamentoHistorico {
   return {
     valorPago: Number(p.valor_pago),
     dataHora: p.criado_em,
     formaRecebimento: p.forma_recebimento,
     produto: formatarProdutoPagamento(p),
+    itemValorTotal: p.item_valor_total !== null ? Number(p.item_valor_total) : null,
+    itemRestante: p.item_restante !== null ? Number(p.item_restante) : null,
   }
 }
 
@@ -251,7 +255,8 @@ export function ClienteFiadoDetailPage() {
       '',
       ...pagamentos.map((p) => {
         const produto = formatarProdutoPagamento(p)
-        return `${format(new Date(p.criado_em), 'dd/MM/yyyy')} — pagou R$ ${Number(p.valor_pago).toFixed(2)} (${FORMA_LABEL[p.forma_recebimento]})${produto ? ` — ${produto}` : ''}`
+        const restante = p.item_restante !== null ? ` · restante do item: R$ ${Number(p.item_restante).toFixed(2)}` : ''
+        return `${format(new Date(p.criado_em), 'dd/MM/yyyy')} — pagou R$ ${Number(p.valor_pago).toFixed(2)} (${FORMA_LABEL[p.forma_recebimento]})${produto ? ` — ${produto}` : ''}${restante}`
       }),
       '',
       totalEmAberto > 0
@@ -552,12 +557,21 @@ export function ClienteFiadoDetailPage() {
                           {formatarProdutoPagamento(p) && (
                             <p className="truncate text-xs text-neutral-400">
                               {formatarProdutoPagamento(p)}
+                              {p.item_valor_total !== null &&
+                                ` (valor: R$ ${Number(p.item_valor_total).toFixed(2)})`}
                             </p>
                           )}
                         </div>
-                        <span className="shrink-0 font-medium text-neutral-900">
-                          R$ {Number(p.valor_pago).toFixed(2)}
-                        </span>
+                        <div className="shrink-0 text-right">
+                          <p className="font-medium text-neutral-900">
+                            R$ {Number(p.valor_pago).toFixed(2)}
+                          </p>
+                          {p.item_restante !== null && (
+                            <p className="text-xs text-neutral-400">
+                              Restante: R$ {Number(p.item_restante).toFixed(2)}
+                            </p>
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ul>
