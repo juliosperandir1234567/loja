@@ -24,6 +24,58 @@ interface Recibo {
   itens: string[]
 }
 
+interface PagamentoPendente {
+  pagamentos: { itemId: string; valor: number }[]
+  nomesItens: string[]
+  valorTotal: number
+}
+
+function ConfirmarRecebimentoModal({
+  pendente,
+  forma,
+  confirmando,
+  onConfirm,
+  onClose,
+}: {
+  pendente: PagamentoPendente
+  forma: FormaRecebimento
+  confirmando: boolean
+  onConfirm: () => void
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/50 sm:items-center sm:justify-center">
+      <div className="w-full rounded-t-2xl bg-white p-4 sm:max-w-sm sm:rounded-2xl">
+        <h2 className="mb-1 text-base font-semibold text-neutral-900">Confirmar recebimento</h2>
+        <p className="mb-3 text-sm text-neutral-500">
+          Confirma que recebeu R$ {pendente.valorTotal.toFixed(2)} em {FORMA_LABEL[forma]}?
+        </p>
+        <ul className="mb-4 flex flex-col gap-1 rounded-lg bg-neutral-50 p-3 text-sm text-neutral-600">
+          {pendente.nomesItens.map((i) => (
+            <li key={i}>• {i}</li>
+          ))}
+        </ul>
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            disabled={confirmando}
+            className="flex-1 rounded-lg border border-neutral-300 py-3 text-sm font-medium disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={confirmando}
+            className="flex-1 rounded-lg bg-green-600 py-3 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {confirmando ? 'Confirmando...' : 'Confirmar recebimento'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function formatarProdutoPagamento(p: { produto_nome: string | null; quantidade: number | null }) {
   if (!p.produto_nome) return null
   return p.quantidade ? `${p.quantidade}x ${p.produto_nome}` : p.produto_nome
@@ -76,12 +128,12 @@ export function ClienteFiadoDetailPage() {
   const [gerandoPdf, setGerandoPdf] = useState(false)
   const [gerandoExtrato, setGerandoExtrato] = useState(false)
   const [enviandoExtrato, setEnviandoExtrato] = useState(false)
-  const [pagandoTudo, setPagandoTudo] = useState(false)
   const [mostrarHistorico, setMostrarHistorico] = useState(false)
   const [mostrarPagamentos, setMostrarPagamentos] = useState(false)
   const [valorParcial, setValorParcial] = useState('')
-  const [pagandoParcial, setPagandoParcial] = useState(false)
   const [formaRecebimento, setFormaRecebimento] = useState<FormaRecebimento>('dinheiro')
+  const [pagamentoPendente, setPagamentoPendente] = useState<PagamentoPendente | null>(null)
+  const [confirmando, setConfirmando] = useState(false)
 
   const porVenda = useMemo(() => {
     const mapa = new Map<string, typeof itens>()
@@ -136,60 +188,38 @@ export function ClienteFiadoDetailPage() {
     0,
   )
 
-  async function processarPagamento(
-    pagamentos: { itemId: string; valor: number }[],
-    nomesItens: string[],
-  ) {
+  function prepararConfirmar() {
+    const pagamentos = Array.from(selecionados)
+      .map((itemId) => ({ itemId, valor: Number(valores[itemId]) || 0 }))
+      .filter((p) => p.valor > 0)
     if (pagamentos.length === 0) {
       toast.error('Selecione ao menos um item e informe o valor')
       return
     }
-    try {
-      await registrarItens.mutateAsync({ pagamentos, formaRecebimento })
-      const saldoRestante = await buscarSaldoCliente(id!)
-      setRecibo({
-        valorPago: pagamentos.reduce((acc, p) => acc + p.valor, 0),
-        saldoRestante,
-        dataHora: new Date().toISOString(),
-        itens: nomesItens,
-      })
-      limparSelecao()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao registrar pagamento')
-    }
-  }
-
-  async function handleConfirmar() {
-    const pagamentos = Array.from(selecionados)
-      .map((itemId) => ({ itemId, valor: Number(valores[itemId]) || 0 }))
-      .filter((p) => p.valor > 0)
     const nomesItens = (itens ?? [])
       .filter((i) => selecionados.has(i.item_id))
       .map((i) => `${i.produto_nome} (R$ ${(Number(valores[i.item_id]) || 0).toFixed(2)})`)
-    await processarPagamento(pagamentos, nomesItens)
+    setPagamentoPendente({ pagamentos, nomesItens, valorTotal: totalSelecionado })
   }
 
-  async function handlePagamentoTotal() {
+  function prepararPagamentoTotal() {
     if (!itens || itens.length === 0) return
-    setPagandoTudo(true)
     const pagamentos = itens
       .map((i) => ({ itemId: i.item_id, valor: Number(i.restante) }))
       .filter((p) => p.valor > 0)
     const nomesItens = itens.map(
       (i) => `${i.produto_nome} (R$ ${Number(i.restante).toFixed(2)})`,
     )
-    await processarPagamento(pagamentos, nomesItens)
-    setPagandoTudo(false)
+    setPagamentoPendente({ pagamentos, nomesItens, valorTotal: totalEmAberto })
   }
 
-  async function handlePagamentoParcial() {
+  function prepararPagamentoParcial() {
     const valorInformado = Number(valorParcial.replace(',', '.'))
     if (!itens || itens.length === 0 || !valorInformado || valorInformado <= 0) return
     if (valorInformado > totalEmAberto) {
       toast.error('Valor maior que o total em aberto')
       return
     }
-    setPagandoParcial(true)
     let restanteParaDistribuir = valorInformado
     const pagamentos: { itemId: string; valor: number }[] = []
     const nomesItens: string[] = []
@@ -201,9 +231,29 @@ export function ClienteFiadoDetailPage() {
       nomesItens.push(`${i.produto_nome} (R$ ${valorItem.toFixed(2)})`)
       restanteParaDistribuir -= valorItem
     }
-    await processarPagamento(pagamentos, nomesItens)
-    setValorParcial('')
-    setPagandoParcial(false)
+    setPagamentoPendente({ pagamentos, nomesItens, valorTotal: valorInformado })
+  }
+
+  async function handleConfirmarPagamentoPendente() {
+    if (!pagamentoPendente) return
+    setConfirmando(true)
+    try {
+      await registrarItens.mutateAsync({ pagamentos: pagamentoPendente.pagamentos, formaRecebimento })
+      const saldoRestante = await buscarSaldoCliente(id!)
+      setRecibo({
+        valorPago: pagamentoPendente.pagamentos.reduce((acc, p) => acc + p.valor, 0),
+        saldoRestante,
+        dataHora: new Date().toISOString(),
+        itens: pagamentoPendente.nomesItens,
+      })
+      limparSelecao()
+      setValorParcial('')
+      setPagamentoPendente(null)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao registrar pagamento')
+    } finally {
+      setConfirmando(false)
+    }
   }
 
   async function handleGerarPdf() {
@@ -382,11 +432,10 @@ export function ClienteFiadoDetailPage() {
 
         {totalEmAberto > 0 && (
           <button
-            onClick={handlePagamentoTotal}
-            disabled={pagandoTudo || registrarItens.isPending}
+            onClick={prepararPagamentoTotal}
             className="rounded-xl bg-green-600 py-4 text-lg font-bold text-white disabled:opacity-50"
           >
-            {pagandoTudo ? 'Registrando...' : `Pagamento total — R$ ${totalEmAberto.toFixed(2)}`}
+            Pagamento total — R$ {totalEmAberto.toFixed(2)}
           </button>
         )}
 
@@ -407,11 +456,11 @@ export function ClienteFiadoDetailPage() {
                 className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none"
               />
               <button
-                onClick={handlePagamentoParcial}
-                disabled={pagandoParcial || registrarItens.isPending || !valorParcial}
+                onClick={prepararPagamentoParcial}
+                disabled={!valorParcial}
                 className="rounded-lg bg-[var(--cor-primaria)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
-                {pagandoParcial ? 'Registrando...' : 'Registrar'}
+                Registrar
               </button>
             </div>
             {Number(valorParcial.replace(',', '.')) > 0 && (
@@ -610,13 +659,22 @@ export function ClienteFiadoDetailPage() {
             <span>R$ {totalSelecionado.toFixed(2)}</span>
           </div>
           <button
-            onClick={handleConfirmar}
-            disabled={registrarItens.isPending}
+            onClick={prepararConfirmar}
             className="w-full rounded-lg bg-[var(--cor-primaria)] py-3 text-base font-medium text-white disabled:opacity-50"
           >
-            {registrarItens.isPending ? 'Registrando...' : 'Confirmar recebimento'}
+            Revisar recebimento
           </button>
         </div>
+      )}
+
+      {pagamentoPendente && (
+        <ConfirmarRecebimentoModal
+          pendente={pagamentoPendente}
+          forma={formaRecebimento}
+          confirmando={confirmando}
+          onConfirm={handleConfirmarPagamentoPendente}
+          onClose={() => setPagamentoPendente(null)}
+        />
       )}
     </AppShell>
   )
