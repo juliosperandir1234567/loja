@@ -13,7 +13,8 @@ import {
 import { buscarSaldoCliente, listarPagamentosCliente } from './api'
 import { buscarConfiguracoes } from '../configuracoes/api'
 import { gerarPdfPagamento, type PagamentoHistorico } from './pdfPagamento'
-import { abrirWhatsApp } from '../../utils/whatsapp'
+import { gerarImagemExtrato } from './imagemExtrato'
+import { abrirWhatsApp, compartilharImagemOuBaixarEAbrirWhatsApp } from '../../utils/whatsapp'
 import type { FormaRecebimento } from '../../types/database.types'
 
 interface Recibo {
@@ -74,6 +75,7 @@ export function ClienteFiadoDetailPage() {
   const [recibo, setRecibo] = useState<Recibo | null>(null)
   const [gerandoPdf, setGerandoPdf] = useState(false)
   const [gerandoExtrato, setGerandoExtrato] = useState(false)
+  const [enviandoExtrato, setEnviandoExtrato] = useState(false)
   const [pagandoTudo, setPagandoTudo] = useState(false)
   const [mostrarHistorico, setMostrarHistorico] = useState(false)
   const [mostrarPagamentos, setMostrarPagamentos] = useState(false)
@@ -245,25 +247,28 @@ export function ClienteFiadoDetailPage() {
     }
   }
 
-  function handleEnviarWhatsAppExtrato() {
+  async function handleEnviarWhatsAppExtrato() {
     if (!cliente || !pagamentos || pagamentos.length === 0) return
-    const linhas = [
-      '*Espaço Sperandir*',
-      'Extrato de Pagamentos — Venda a Prazo',
-      '',
-      `Cliente: ${cliente.nome}`,
-      '',
-      ...pagamentos.map((p) => {
-        const produto = formatarProdutoPagamento(p)
-        const restante = p.item_restante !== null ? ` · restante do item: R$ ${Number(p.item_restante).toFixed(2)}` : ''
-        return `${format(new Date(p.criado_em), 'dd/MM/yyyy')} — pagou R$ ${Number(p.valor_pago).toFixed(2)} (${FORMA_LABEL[p.forma_recebimento]})${produto ? ` — ${produto}` : ''}${restante}`
-      }),
-      '',
-      totalEmAberto > 0
-        ? `Saldo restante em aberto: R$ ${totalEmAberto.toFixed(2)}`
-        : 'Conta a prazo totalmente quitada.',
-    ]
-    abrirWhatsApp(cliente.telefone, linhas.join('\n'))
+    setEnviandoExtrato(true)
+    try {
+      const config = await buscarConfiguracoes()
+      const blob = await gerarImagemExtrato({
+        config,
+        nome: cliente.nome,
+        pagamentos: pagamentos.map(paraPagamentoHistorico),
+        saldoRestante: totalEmAberto,
+      })
+      await compartilharImagemOuBaixarEAbrirWhatsApp({
+        blob,
+        nomeArquivo: `extrato-pagamentos-${cliente.nome.replace(/\s+/g, '-').toLowerCase()}.png`,
+        telefone: cliente.telefone,
+        legenda: `Segue o extrato de pagamentos, ${cliente.nome}! Obrigado pela confiança 💚`,
+      })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao enviar extrato')
+    } finally {
+      setEnviandoExtrato(false)
+    }
   }
 
   function mensagemWhatsApp(r: Recibo) {
@@ -585,9 +590,10 @@ export function ClienteFiadoDetailPage() {
                     </button>
                     <button
                       onClick={handleEnviarWhatsAppExtrato}
-                      className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white"
+                      disabled={enviandoExtrato}
+                      className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white disabled:opacity-50"
                     >
-                      Enviar por WhatsApp
+                      {enviandoExtrato ? 'Gerando imagem...' : 'Enviar por WhatsApp'}
                     </button>
                   </div>
                 </>
